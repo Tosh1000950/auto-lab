@@ -28,3 +28,5 @@ python3 ~/workspace/custom-connectors/custom.github-api/bin/github_api.py sync T
 ## 運用メモ
 - 作品の原本は各ワークスペース（~/workspace/pitastop 等）にも残っているが、公開用の正はこのフォルダとする。今後どちらかを直したら、もう一方へも反映すること。
 - 21:14 エボトープ Stage 5 まで完了し auto-lab/evotope/ へ同期。段階計画は一巡。残るは実ブラウザ目視とバランス調整。
+- 21:35 テスト第2作（非ゲーム）として「エニグマ工房」を自分の調査と判断で決定。候補は音響ラボ／エニグマ／天文デスクの3本、先行作調査とGrok批評を経て、検証可能性と日本語での差別化角度を理由にエニグマを選定。理由の全文は ~/workspace/enigma-koubou/RESEARCH.md。
+- 21:38頃 エニグマ工房 全Stage完了（コア検証／盤面＋信号経路／設定共有／crib探索／説明書）。ハブ掲載済み。URL： https://tosh1000950.github.io/auto-lab/enigma-koubou/ 説明書は同フォルダの manual.html。
