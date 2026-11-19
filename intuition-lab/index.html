@@ -352,6 +352,26 @@ $('btnShare').addEventListener('click',()=>{
   if(navigator.clipboard) navigator.clipboard.writeText($('shareTxt').value);
   $('btnShare').textContent='コピーしました ✓';
 });
+
+/* おまけ：嘘グラフ */
+function drawLie(){
+  const start=+$('axisStart').value; $('axisStartV').textContent=start;
+  const cv=$('c6'), ctx=cv.getContext('2d'); const W=cv.width,H=cv.height, base=H-46, top=26;
+  ctx.clearRect(0,0,W,H);
+  const max=60;
+  function bar(x,val,color,label){
+    const hgt=(val-start)/(max-start)*(base-top);
+    ctx.fillStyle=color; ctx.fillRect(x,base-hgt,150,hgt);
+    ctx.fillStyle='#f2efe6'; ctx.font='bold 24px sans-serif'; ctx.fillText(val+'点',x+38,base-hgt-10);
+    ctx.font='18px sans-serif'; ctx.fillText(label,x+52,base+28);
+  }
+  ctx.strokeStyle='#333949'; ctx.beginPath(); ctx.moveTo(40,base); ctx.lineTo(W-20,base); ctx.stroke();
+  ctx.fillStyle='#a8a294'; ctx.font='14px sans-serif'; ctx.fillText('縦軸は '+start+'点 から',44,top);
+  bar(150,52,'#4a5470','A社'); bar(430,58,'#ffb347','B社');
+  const visual=((58-start)/(52-start)).toFixed(2);
+  $('lieMsg').textContent='見た目の比率：B社はA社の約 '+visual+' 倍に見えます（実際の比率は約1.12倍）。';
+}
+$('axisStart').addEventListener('input',drawLie); drawLie();
 </script>
 </body>
 </html>
