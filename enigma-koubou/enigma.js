@@ -83,4 +83,63 @@ class Enigma {
   }
   windowString() { return this.positions.map(I2A).join(''); }
 }
-if (typeof module !== 'undefined') module.exports = { Enigma, ROTORS, REFLECTORS };
+
+/* ===== Stage 3：設定コードと日替わりキーシート ===== */
+const ROMAN = { I: 1, II: 2, III: 3, IV: 4, V: 5 };
+const ROMAN_R = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V' };
+function plugsToString(plugMap) {
+  const seen = new Set(), pairs = [];
+  for (let i = 0; i < 26; i++) {
+    const j = plugMap[i];
+    if (j !== i && !seen.has(i) && !seen.has(j)) { pairs.push(I2A(i) + I2A(j)); seen.add(i); seen.add(j); }
+  }
+  return pairs.sort().join('');
+}
+function encodeConfig(cfg) {
+  const m = new Enigma(cfg); /* 検証を兼ねる */
+  const rot = cfg.rotors.map(r => ROMAN[r]).join('');
+  const rings = (cfg.rings || [0, 0, 0]).map(I2A).join('');
+  const pos = (cfg.positions || [0, 0, 0]).map(I2A).join('');
+  const plugs = plugsToString(m.plugMap) || '-';
+  return 'ENI1-' + rot + '-' + (cfg.reflector || 'B') + '-' + rings + '-' + pos + '-' + plugs;
+}
+function decodeConfig(code) {
+  const parts = String(code).trim().toUpperCase().split('-');
+  if (parts.length !== 6 || parts[0] !== 'ENI1') return null;
+  const rotDigits = parts[1];
+  if (!/^[1-5]{3}$/.test(rotDigits)) return null;
+  const rotors = rotDigits.split('').map(d => ROMAN_R[+d]);
+  if (new Set(rotors).size !== 3) return null;
+  if (!/^[BC]$/.test(parts[2])) return null;
+  if (!/^[A-Z]{3}$/.test(parts[3]) || !/^[A-Z]{3}$/.test(parts[4])) return null;
+  const plugs = parts[5] === '-' ? '' : parts[5];
+  if (plugs && (!/^[A-Z]+$/.test(plugs) || plugs.length % 2 !== 0)) return null;
+  const plugStr = plugs ? plugs.match(/.{2}/g).join(' ') : '';
+  const cfg = { rotors, reflector: parts[2], rings: parts[3].split('').map(A2I), positions: parts[4].split('').map(A2I), plugs: plugStr };
+  try { new Enigma(cfg); } catch (e) { return null; }
+  return cfg;
+}
+function hashSeed(str) { let h = 2166136261; for (const ch of str) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function dailyConfig(dateStr) {
+  let a = hashSeed('enigma-koubou:' + dateStr);
+  const rng = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const names = ['I', 'II', 'III', 'IV', 'V'];
+  const order = names.slice();
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const pool = letters.slice();
+  const pairs = [];
+  for (let k = 0; k < 10; k++) {
+    const x = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+    const y = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+    pairs.push(x + y);
+  }
+  return {
+    rotors: order.slice(0, 3), reflector: rng() < 0.5 ? 'B' : 'C',
+    rings: [0, 0, 0].map(() => Math.floor(rng() * 26)),
+    positions: [0, 0, 0].map(() => Math.floor(rng() * 26)),
+    plugs: pairs.join(' ')
+  };
+}
+
+if (typeof module !== 'undefined') module.exports = { Enigma, ROTORS, REFLECTORS, encodeConfig, decodeConfig, dailyConfig, plugsToString };
