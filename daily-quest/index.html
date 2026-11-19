@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>日替わりクエスト手帳 | 毎日の小さな冒険</title>
+<meta name="description" content="毎朝届く3つの小さな冒険クエスト。達成してEXPを貯め、日常をレベルアップ。全員その日は同じクエスト。">
+<meta property="og:title" content="日替わりクエスト手帳">
+<meta property="og:description" content="今日のクエストはこれ。日常を冒険に変える手帳">
+<meta property="og:type" content="website">
+<style>
+:root{--bg:#0f1a14;--card:#1a2b20;--ink:#eef7ee;--sub:#9db8a4;--acc:#7be382;--acc2:#ffd23f;--line:#2c4634}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:16px}
+main{width:100%;max-width:520px;display:flex;flex-direction:column;gap:14px}
+header{text-align:center;padding-top:6px}
+h1{font-size:1.8rem} h1 .a{color:var(--acc)}
+.tag{color:var(--sub);font-size:.85rem;margin-top:4px}
+.card{background:var(--card);border-radius:16px;padding:18px;box-shadow:0 4px 20px rgba(0,0,0,.35)}
+.quest{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line)}
+.quest:last-child{border-bottom:none}
+.quest input{width:26px;height:26px;margin-top:2px;accent-color:var(--acc);flex:none}
+.quest .t{font-weight:700;line-height:1.45}
+.quest .d{color:var(--sub);font-size:.88rem;line-height:1.6;margin-top:2px}
+.quest .meta{font-size:.78rem;color:var(--acc2);margin-top:4px}
+.quest.done .t,.quest.done .d{opacity:.45;text-decoration:line-through}
+.stats{display:flex;justify-content:space-around;text-align:center}
+.stats b{display:block;font-size:1.25rem}
+.stats span{color:var(--sub);font-size:.78rem}
+.bar{height:10px;background:#0d150f;border-radius:99px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--acc);width:0%}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row button{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:#0d150f;color:var(--ink);cursor:pointer;font-size:.93rem}
+.row button:disabled{opacity:.45;cursor:default}
+.dots{display:flex;gap:8px;justify-content:center;margin-top:6px}
+.dots div{text-align:center;font-size:.7rem;color:var(--sub)}
+.dots i{display:block;width:20px;height:20px;border-radius:50%;background:#0d150f;border:1px solid var(--line);margin:0 auto 4px}
+.dots i.full{background:var(--acc)}
+.dots i.part{background:var(--acc2)}
+footer{color:var(--sub);font-size:.78rem;text-align:center;line-height:1.7;padding-bottom:12px}
+#celebrate{text-align:center;color:var(--acc2);font-weight:800;min-height:1.4em}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>日替わり<span class="a">クエスト</span>手帳</h1>
+    <p class="tag">毎朝3つの小さな冒険が届く。今日のクエストは、みんな同じ。</p>
+  </header>
+
+  <section class="card">
+    <b id="dateLbl">今日のクエスト</b>
+    <div id="quests"></div>
+    <p id="celebrate"></p>
+    <div class="row" style="margin-top:8px">
+      <button id="rerollBtn" type="button">運命の書き換え（1日1回）</button>
+      <button id="shareBtn" type="button">今日の記録をシェア</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="stats">
+      <div><b id="stLevel">Lv.1</b><span id="stTitle">駆け出し冒険者</span></div>
+      <div><b id="stExp">0</b><span>累計EXP</span></div>
+      <div><b id="stStreak">0</b><span>連続達成日数</span></div>
+    </div>
+    <div class="bar"><i id="expBar"></i></div>
+    <p style="color:var(--sub);font-size:.8rem;margin-top:6px" id="expNext"></p>
+  </section>
+
+  <section class="card">
+    <b>過去7日</b>
+    <div class="dots" id="weekDots"></div>
+  </section>
+
+  <footer>クエストは全部、道具なし・5〜15分・失敗しても損しないものだけ。<br>記録はこの端末にだけ保存されます。</footer>
+</main>
+
+<script>
+"use strict";
+/* ===== ミッション 48種 ===== */
+var MISSIONS=[
+ // あるく
+ {c:"あるく",t:"いつもと違う道を通る",d:"通勤・買い物・散歩、いつもの道を1本だけ変えてみる。",s:1},
+ {c:"あるく",t:"一番遠くの自動販売機まで行く",d:"近所で一番遠いと思う自販機まで歩いて、何か1つ買う。",s:2},
+ {c:"あるく",t:"階段だけで一日過ごす",d:"エレベーターとエスカレーターを今日だけ封印。",s:3},
+ {c:"あるく",t:"空を見上げて1分歩く",d:"安全な場所で、雲の形を1つ見つける。写真に撮ってもいい。",s:1},
+ {c:"あるく",t:"近所の「一番古そうなもの」を探す",d:"石碑、看板、木。古そうなものを見つけて観察する。",s:2},
+ {c:"あるく",t:"信号で止まったら深呼吸3回",d:"今日の移動中、赤信号のたびに深呼吸。",s:1},
+ {c:"あるく",t:"歩数777歩ぴったりを狙う",d:"歩数計を見ながら、777歩で止まれそうな瞬間を狙う。外してもOK。",s:2},
+ {c:"あるく",t:"影と競争する",d:"自分の影より先に角を曲がる、を3回やってみる。",s:1},
+ // たべる
+ {c:"たべる",t:"冷蔵庫の奥のものを食べる",d:"一番奥で眠っている食材を1つ救出して食べる。",s:1},
+ {c:"たべる",t:"食べたことのない味を買う",d:"お菓子・飲み物・調味料、未経験の味に1つ挑戦。",s:2},
+ {c:"たべる",t:"一食だけ利き手じゃない方で食べる",d:"箸やスプーンを逆の手で。こぼしても笑って済ます。",s:2},
+ {c:"たべる",t:"最初のひと口を目を閉じて味わう",d:"今日の食事の最初のひと口だけ、真剣に味わう。",s:1},
+ {c:"たべる",t:"誰かのおすすめをそのまま買う",d:"店員さんや家族のおすすめを、理由を聞かずに採用する。",s:2},
+ {c:"たべる",t:"温かい飲み物を両手で持つ",d:"1分間、両手で包んで温かさを感じる。それだけ。",s:1},
+ {c:"たべる",t:"ご飯に「いつもと違う何か」を足す",d:"ふりかけ、海苔、チーズ。組み合わせ実験を1回。",s:1},
+ {c:"たべる",t:"夕食のメニューをサイコロで決める",d:"候補3つを書いて、目を閉じて指で選ぶのもOK。",s:2},
+ // はなす
+ {c:"はなす",t:"誰かに「ありがとう」を理由つきで言う",d:"「〜してくれてありがとう」まで言うのがクエスト条件。",s:1},
+ {c:"はなす",t:"久しぶりの人に短い連絡をする",d:"「元気？」の一言だけでも達成。返信は気にしない。",s:2},
+ {c:"はなす",t:"今日の小さな良いことを誰かに話す",d:"どんなに小さくてもいい。話すことで確定させる。",s:1},
+ {c:"はなす",t:"店員さんに一言プラスする",d:"「ありがとうございます」に天気や労いの一言を足す。",s:1},
+ {c:"はなす",t:"自分の今日のクエストを宣言する",d:"この手帳のクエストを誰かに言うと達成率が上がる（気がする）。",s:2},
+ {c:"はなす",t:"質問を1つだけ投げかける",d:"「最近どう？」以外の質問を誰かに1つ。",s:2},
+ {c:"はなす",t:"褒めポイントを見つけて伝える",d:"持ち物・仕事・工夫、何でもいいので具体的に褒める。",s:2},
+ {c:"はなす",t:"家族や友人の「最近の推し」を聞く",d:"自分からは話さず、聞き役に徹する。",s:1},
+ // つくる
+ {c:"つくる",t:"机の上を「作品」として並べ直す",d:"片付けではなく配置アートとして。写真を撮ると達成感が増す。",s:1},
+ {c:"つくる",t:"今日の日付入りメモを紙に書く",d:"手書きで日付と一言。財布や本に挟んでおく。",s:1},
+ {c:"つくる",t:"落書きを1つ描く",d:"上手さは無関係。丸と線だけでも立派な作品。",s:1},
+ {c:"つくる",t:"スマホの壁紙を今日限定で変える",d:"昔の写真や撮りたてを壁紙に。明日戻してもいい。",s:1},
+ {c:"つくる",t:"4コマの出来事を箇条書きにする",d:"今日起きたことを起承転結っぽく4行で。",s:2},
+ {c:"つくる",t:"名前のない料理に名前を付ける",d:"今日食べた何かに、メニューっぽい名前を付けて宣言する。",s:1},
+ {c:"つくる",t:"折り紙か紙工作を1つ",d:"鶴でなくていい。紙飛行機でも箱でも。",s:2},
+ {c:"つくる",t:"今日の自分に称号を付ける",d:"例：「布団干しの達人」。声に出すと効果が高い。",s:1},
+ // やすむ
+ {c:"やすむ",t:"5分だけ何もしない",d:"スマホを伏せて、タイマー5分。何もしないのが仕事。",s:2},
+ {c:"やすむ",t:"一番好きな曲を1曲だけ聴く",d:"ながら聴き禁止。1曲だけ集中して聴く。",s:1},
+ {c:"やすむ",t:"目を閉じて音を3つ数える",d:"今いる場所の音を3つ見つける。遠くの音ほど高得点。",s:1},
+ {c:"やすむ",t:"温かいタオルで顔を覆う",d:"レンジで温めたタオルで30秒。簡易サウナ気分。",s:2},
+ {c:"やすむ",t:"今日は1つだけ「やらないこと」を決める",d:"やらないと決めたら、それは達成。",s:2},
+ {c:"やすむ",t:"窓の外をぼんやり眺める",d:"3分間、目的なく外を見る。",s:1},
+ {c:"やすむ",t:"靴下を一番気持ちいいやつにする",d:"お気に入りを今日履く。特別な日は自分で作る。",s:1},
+ {c:"やすむ",t:"寝る前に明日楽しみなことを1つ言う",d:"小さくてOK。「朝のパンを楽しみにする」等。",s:1},
+ // そと・その他
+ {c:"そと",t:"今日の空の色に名前を付ける",d:"「洗いたてのシャツ色」など、色の名前は自由。",s:1},
+ {c:"そと",t:"季節の証拠を1つ見つける",d:"花、虫、気温、空気。今の季節らしいものを1つ。",s:1},
+ {c:"そと",t:"誰かの落とし物を届ける／ゴミを1つ拾う",d:"小さな親切を1つ。見返りはEXPのみ。",s:2},
+ {c:"そと",t:"一番近い公園か広場に寄る",d:"通り過ぎるだけでも達成。ベンチに座れば大達成。",s:2},
+ {c:"そと",t:"月か星を1つ見つける",d:"曇っていたら「雲の向こうにある」と想像で達成。",s:1},
+ {c:"そと",t:"鳥の声を聞き分ける",d:"何種類の鳥の声が聞こえるか数える。1種類でも達成。",s:1},
+ {c:"そと",t:"夕日の時刻を調べて眺める",d:"間に合わなければ、空が暗くなる瞬間を見る。",s:2},
+ {c:"そと",t:"近所の新しいものを1つ発見する",d:"新しい店、看板、工事。新しさに気づくのがクエスト。",s:2}];
+/* ===== 純ロジック ===== */
+function dateKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function seedFrom(key){ var h=2166136261; for(var i=0;i<key.length;i++){ h^=key.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function rng(seed){ var a=seed>>>0; return function(){ a|=0; a=(a+0x6D2B79F5)|0; var t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+function pickQuests(key){
+  var r=rng(seedFrom(key)), idx=MISSIONS.map(function(_,i){return i;});
+  for(var i=idx.length-1;i>0;i--){ var j=Math.floor(r()*(i+1)); var tmp=idx[i]; idx[i]=idx[j]; idx[j]=tmp; }
+  return idx.slice(0,3);
+}
+function rerollPick(key,current,slot){
+  var r=rng(seedFrom(key+":reroll"));
+  var pool=MISSIONS.map(function(_,i){return i;}).filter(function(i){return current.indexOf(i)<0;});
+  var next=current.slice(); next[slot]=pool[Math.floor(r()*pool.length)];
+  return next;
+}
+function levelFor(exp){
+  var lv=1, need=30, rest=exp;
+  while(rest>=need){ rest-=need; lv++; need+=20; }
+  return {level:lv, into:rest, need:need};
+}
+var TITLES=["駆け出し冒険者","日常の旅人","小さな勇者","街の冒険家","クエスト職人","日常マスター","伝説の日常王"];
+function titleFor(level){ return TITLES[Math.min(TITLES.length-1, Math.floor((level-1)/2))]; }
+function shareTextOf(key,quests,doneCount,exp){
+  var lines=quests.map(function(qi,k){ return (doneCount[k]?"✅":"⬜")+" "+MISSIONS[qi].t; });
+  return "日替わりクエスト手帳 "+key+"\n"+lines.join("\n")+"\n達成 "+doneCount.filter(Boolean).length+"/3 ・ 累計"+exp+" EXP\n#日替わりクエスト";
+}
+if(typeof module!=="undefined"&&module.exports){ module.exports={MISSIONS:MISSIONS,dateKey:dateKey,pickQuests:pickQuests,rerollPick:rerollPick,levelFor:levelFor,titleFor:titleFor,shareTextOf:shareTextOf}; }
+
+/* ===== 画面 ===== */
+if(typeof document!=="undefined"){
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var today=dateKey(new Date());
+  var LS="dailyquest_v1";
+  var store={days:{},exp:0,rerolled:{}};
+  try{ var raw=JSON.parse(localStorage.getItem(LS)||"null"); if(raw&&raw.days) store=raw; }catch(e){}
+  if(!store.days[today]) store.days[today]={quests:pickQuests(today),done:[false,false,false]};
+  var day=store.days[today];
+  function save(){ try{ localStorage.setItem(LS,JSON.stringify(store)); }catch(e){} }
+  function streak(){
+    var n=0,d=new Date();
+    var k=dateKey(d);
+    if(!(store.days[k]&&store.days[k].done.some(Boolean))) d.setDate(d.getDate()-1);
+    while(true){ var kk=dateKey(d); if(store.days[kk]&&store.days[kk].done.some(Boolean)){ n++; d.setDate(d.getDate()-1); } else break; }
+    return n;
+  }
+  function render(){
+    $("dateLbl").textContent="今日のクエスト（"+today+"）";
+    var box=$("quests"); box.innerHTML="";
+    day.quests.forEach(function(qi,k){
+      var m=MISSIONS[qi];
+      var div=document.createElement("div"); div.className="quest"+(day.done[k]?" done":"");
+      var cb=document.createElement("input"); cb.type="checkbox"; cb.checked=day.done[k];
+      cb.addEventListener("change",function(){
+        var before=day.done[k]; day.done[k]=cb.checked;
+        store.exp+= cb.checked? m.s*10 : -m.s*10;
+        if(store.exp<0) store.exp=0;
+        save(); render();
+      });
+      var body=document.createElement("div");
+      var t=document.createElement("div"); t.className="t"; t.textContent=m.t;
+      var d=document.createElement("div"); d.className="d"; d.textContent=m.d;
+      var meta=document.createElement("div"); meta.className="meta";
+      meta.textContent="カテゴリ："+m.c+" ／ 難易度 "+"★".repeat(m.s)+" ／ "+(m.s*10)+" EXP";
+      body.appendChild(t); body.appendChild(d); body.appendChild(meta);
+      div.appendChild(cb); div.appendChild(body); box.appendChild(div);
+    });
+    var doneN=day.done.filter(Boolean).length;
+    $("celebrate").textContent= doneN===3 ? "🎉 今日のクエスト全達成！すごい。" : (doneN>0 ? "あと "+(3-doneN)+" つで全達成。" : "");
+    var lv=levelFor(store.exp);
+    $("stLevel").textContent="Lv."+lv.level;
+    $("stTitle").textContent=titleFor(lv.level);
+    $("stExp").textContent=store.exp;
+    $("stStreak").textContent=streak();
+    $("expBar").style.width=(lv.need? (lv.into/lv.need*100):0)+"%";
+    $("expNext").textContent="次のレベルまで あと "+(lv.need-lv.into)+" EXP";
+    $("rerollBtn").disabled=!!store.rerolled[today];
+    $("rerollBtn").textContent= store.rerolled[today] ? "運命の書き換え 使用済み" : "運命の書き換え（1日1回）";
+    var dots=$("weekDots"); dots.innerHTML="";
+    for(var back=6;back>=0;back--){
+      var d=new Date(); d.setDate(d.getDate()-back); var k=dateKey(d);
+      var cell=document.createElement("div");
+      var dot=document.createElement("i");
+      var rec=store.days[k];
+      if(rec){ var c=rec.done.filter(Boolean).length; if(c===3)dot.className="full"; else if(c>0)dot.className="part"; }
+      cell.appendChild(dot);
+      cell.appendChild(document.createTextNode((d.getMonth()+1)+"/"+d.getDate()));
+      dots.appendChild(cell);
+    }
+  }
+  $("rerollBtn").addEventListener("click",function(){
+    if(store.rerolled[today]) return;
+    var undone=day.done.map(function(d,k){return d?null:k;}).filter(function(x){return x!==null;});
+    if(!undone.length) return;
+    var slot=undone[Math.floor(Math.random()*undone.length)];
+    day.quests=rerollPick(today,day.quests,slot);
+    store.rerolled[today]=true; save(); render();
+  });
+  $("shareBtn").addEventListener("click",function(){
+    var text=shareTextOf(today,day.quests,day.done,store.exp);
+    if(navigator.share) navigator.share({text:text}).catch(function(){});
+    else if(navigator.clipboard) navigator.clipboard.writeText(text).then(function(){ $("celebrate").textContent="シェア文をコピーしました。"; });
+  });
+  save(); render();
+})();
+}
+</script>
+</body>
+</html>
