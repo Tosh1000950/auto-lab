@@ -54,6 +54,15 @@ canvas{width:100%;height:auto;display:block;background:#12241a;border:1px solid 
 </div>
 <canvas id="cv" width="1200" height="800"></canvas>
 <div id="toast"></div>
+<div class="panel" style="margin-top:10px"><h3>🌍 世界と種の交換</h3>
+<div>いまの世界シード： <b id="worldSeed"></b>　
+<input id="seedInput" placeholder="シード数値" size="10" style="padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">
+<button id="btnWorld" style="padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">この世界で始める</button></div>
+<div style="margin-top:8px"><input id="codeInput" placeholder="EVO-XXXXXXX（種コード）" size="18" style="padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">
+<button id="btnImport" style="padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">この種を迎える（8匹）</button>
+<span id="importMsg" style="color:var(--acc)"></span></div>
+<div id="cardArea" style="margin-top:10px"></div>
+</div>
 <div class="panels">
   <div class="panel"><h3>🦎 いまの種（タップで祖先比較）</h3><div id="species"></div></div>
   <div class="panel"><h3>📜 進化ログ</h3><div id="elog"></div></div>
@@ -326,6 +335,37 @@ class SpeciesTracker{
 }
 
 
+/* ===== Stage 5：遺伝子コード（種の交換） ===== */
+const GENE_SPEC=[
+  ['size',0.4,2.2,19],['speed',0.2,3.2,21],['sense',10,140,21],['metab',0.3,2.6,21],
+  ['hue',0,360,30],['legs',0,6,7],['legLen',0.2,2.2,21],['head',0,2,3],['tail',0,3,4],
+  ['spikes',0,1,2],['appetite',0,1,21]
+];
+function encodeGenes(g){
+  let n=0n;
+  for(const [k,lo,hi,steps] of GENE_SPEC){
+    const q=Math.min(steps-1,Math.max(0,Math.round((g[k]-lo)/(hi-lo)*(steps-1))));
+    n=n*BigInt(steps)+BigInt(q);
+  }
+  return 'EVO-'+n.toString(36).toUpperCase().padStart(7,'0');
+}
+function decodeGenes(code){
+  const str=String(code).trim().toUpperCase().replace(/^EVO-/,'');
+  if(!/^[0-9A-Z]+$/.test(str)) return null;
+  let n=BigInt('0'); for(const ch of str){ const v=parseInt(ch,36); if(Number.isNaN(v)) return null; n=n*36n+BigInt(v); }
+  const vals={};
+  for(let i=GENE_SPEC.length-1;i>=0;i--){
+    const [k,lo,hi,steps]=GENE_SPEC[i];
+    const q=Number(n%BigInt(steps)); n=n/BigInt(steps);
+    vals[k]=lo+(q/(steps-1))*(hi-lo);
+  }
+  if(n!==0n) return null;
+  vals.legs=Math.round(vals.legs); vals.head=Math.round(vals.head); vals.tail=Math.round(vals.tail);
+  vals.spikes=Math.round(vals.spikes); vals.hue=Math.round(vals.hue)%360;
+  return vals;
+}
+
+
 
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 let seed=(Math.random()*1e9)|0;
@@ -400,7 +440,7 @@ cv.addEventListener('pointerdown',e=>{
 document.getElementById('btnPause').addEventListener('click',e=>{ paused=!paused; e.target.textContent=paused?'▶ 再開':'⏸ 止める'; });
 document.querySelectorAll('.spd').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.spd').forEach(x=>x.classList.remove('on')); b.classList.add('on'); speed=+b.dataset.speed; }));
-document.getElementById('btnSeed').addEventListener('click',()=>{ seed=(Math.random()*1e9)|0; sim=new EvoSim(seed); lastBig=0; selectedSpecies=null; });
+document.getElementById('btnSeed').addEventListener('click',()=>{ seed=(Math.random()*1e9)|0; sim=new EvoSim(seed); lastBig=0; selectedSpecies=null; document.getElementById('worldSeed').textContent=seed; });
 
 let selectedSpecies=null;
 function fmtG(g){ return '脚'+g.legs.toFixed(1)+' 脚長'+g.legLen.toFixed(2)+' 大きさ'+g.size.toFixed(2)+' 速さ'+g.speed.toFixed(2)+' トゲ'+Math.round(g.spikes*100)+'% 肉食'+g.appetite.toFixed(2); }
@@ -409,9 +449,10 @@ function updatePanels(){
   const alive=tr.species.filter(s=>!s.extinct).sort((a,b)=>(b.count||0)-(a.count||0));
   const dead=tr.species.filter(s=>s.extinct).slice(-3);
   document.getElementById('species').innerHTML =
-    alive.map(s=>'<div class="sp" data-id="'+s.id+'">● '+s.name+' <span class="cnt">'+(s.count||0)+'匹</span> <button class="seedbtn" data-seed="'+s.id+'">🌰タネ保存</button></div>').join('') +
+    alive.map(s=>'<div class="sp" data-id="'+s.id+'">● '+s.name+' <span class="cnt">'+(s.count||0)+'匹</span> <button class="seedbtn" data-seed="'+s.id+'">🌰タネ保存</button> <button class="cardbtn" data-card="'+s.id+'">🃏カード</button></div>').join('') +
     dead.map(s=>'<div class="dead">● '+s.name+'（絶滅）</div>').join('') || '（まだ種が分かれていません）';
-  document.querySelectorAll('.sp').forEach(el=>el.addEventListener('click',ev=>{ if(ev.target.classList.contains('seedbtn'))return; selectedSpecies=+el.dataset.id; updatePanels(); }));
+  document.querySelectorAll('.sp').forEach(el=>el.addEventListener('click',ev=>{ if(ev.target.classList.contains('seedbtn')||ev.target.classList.contains('cardbtn'))return; selectedSpecies=+el.dataset.id; updatePanels(); }));
+  document.querySelectorAll('.cardbtn').forEach(el=>el.addEventListener('click',()=>{ makeCard(+el.dataset.card); }));
   document.querySelectorAll('.seedbtn').forEach(el=>el.addEventListener('click',()=>{ sim.saveSeed(+el.dataset.seed); updatePanels(); }));
   document.getElementById('seeds').innerHTML = sim.seeds.length?
     sim.seeds.map((sd,i)=>'<div>🌰 '+sd.name+' の遺伝子 <button class="sowbtn" data-sow="'+i+'">まく（8匹芽吹く）</button></div>').join('') :
@@ -431,6 +472,64 @@ function updatePanels(){
   }
 }
 setInterval(updatePanels, 1200);
+
+function drawBigCreature(g2,g,x,y,R){
+  g2.save(); g2.translate(x,y); g2.rotate(-0.25);
+  g2.strokeStyle='rgba(0,0,0,.5)'; g2.lineWidth=6; g2.lineCap='round';
+  for(let i=0;i<g.legs;i++){ const lx=(i-(g.legs-1)/2)*(R*0.3);
+    g2.beginPath(); g2.moveTo(lx,-R*0.5); g2.lineTo(lx+8,-R*0.5-R*0.45*g.legLen); g2.stroke();
+    g2.beginPath(); g2.moveTo(lx,R*0.5); g2.lineTo(lx-8,R*0.5+R*0.45*g.legLen); g2.stroke(); }
+  if(g.tail>0){ g2.strokeStyle='hsla('+g.hue+',50%,45%,.9)'; g2.lineWidth=9;
+    for(let i=0;i<g.tail;i++){ g2.beginPath(); g2.moveTo(-R,(i-(g.tail-1)/2)*9); g2.quadraticCurveTo(-R-30,-16+i*16,-R-48,-22+i*22); g2.stroke(); } }
+  g2.fillStyle='hsl('+g.hue+',55%,'+(45+g.appetite*18)+'%)';
+  g2.beginPath(); g2.ellipse(0,0,R*1.25,R*0.85,0,0,Math.PI*2); g2.fill();
+  if(g.spikes){ g2.fillStyle='hsl('+g.hue+',40%,30%)';
+    for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; g2.beginPath();
+      g2.moveTo(Math.cos(a)*R*0.7,Math.sin(a)*R*0.55); g2.lineTo(Math.cos(a)*(R+18),Math.sin(a)*(R+18)); g2.lineTo(Math.cos(a+0.4)*R*0.7,Math.sin(a+0.4)*R*0.55); g2.fill(); } }
+  const hx=R*1.25; g2.fillStyle='hsl('+g.hue+',60%,'+(55+g.appetite*15)+'%)';
+  if(g.head===1){ g2.beginPath(); g2.moveTo(hx+30,0); g2.lineTo(hx-10,-17); g2.lineTo(hx-10,17); g2.closePath(); g2.fill(); }
+  else { const hr=g.head===2?R*0.34:R*0.22; g2.beginPath(); g2.arc(hx,0,hr,0,Math.PI*2); g2.fill(); }
+  g2.fillStyle='#101408'; g2.beginPath(); g2.arc(hx+6,-8,5,0,Math.PI*2); g2.arc(hx+6,8,5,0,Math.PI*2); g2.fill();
+  g2.restore();
+}
+function makeCard(speciesId){
+  const sp=sim.tracker.species.find(s=>s.id===speciesId); if(!sp||!sp.meanGenes) return;
+  const g=sp.meanGenes, code=encodeGenes(g);
+  const cnv=document.createElement('canvas'); cnv.width=1200; cnv.height=630;
+  const g2=cnv.getContext('2d');
+  g2.fillStyle='#0d1410'; g2.fillRect(0,0,1200,630);
+  g2.strokeStyle='#8be382'; g2.lineWidth=4; g2.strokeRect(14,14,1172,602);
+  drawBigCreature(g2,g,330,300,120);
+  g2.fillStyle='#eef5ee'; g2.font='bold 64px sans-serif'; g2.fillText(sp.name,580,180);
+  g2.font='30px sans-serif'; g2.fillStyle='#9db8a4';
+  g2.fillText('個体数 '+sp.count+'匹 ／ 誕生 '+sp.bornTick+' tick',580,245);
+  g2.fillText('脚 '+g.legs.toFixed(1)+' ・ 大きさ '+g.size.toFixed(2)+' ・ 速さ '+g.speed.toFixed(2),580,300);
+  g2.fillText('トゲ '+Math.round(g.spikes*100)+'% ・ 肉食度 '+g.appetite.toFixed(2),580,350);
+  g2.fillStyle='#8be382'; g2.font='bold 34px sans-serif';
+  g2.fillText('種コード '+code,580,440);
+  g2.fillStyle='#9db8a4'; g2.font='26px sans-serif';
+  g2.fillText('変化の意味： '+causalTags(sp.founderGenes,g).join(' / '),580,500);
+  g2.fillText('エボトープ ― 世界シード '+seed,580,560);
+  const url=cnv.toDataURL('image/png');
+  const share='🧬 エボトープで種「'+sp.name+'」が育った！ '+code+'（このコードで君の世界にも迎えられる）';
+  document.getElementById('cardArea').innerHTML =
+    '<img src="'+url+'" style="width:100%;border-radius:12px" alt="種カード"><div style="margin-top:6px">'+
+    '<a href="'+url+'" download="evotope-'+code+'.png" style="color:var(--acc)">⬇ カード画像を保存</a>　'+
+    '<button id="btnShareCard" style="padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">シェア文をコピー</button></div>';
+  document.getElementById('btnShareCard').addEventListener('click',()=>navigator.clipboard&&navigator.clipboard.writeText(share));
+}
+document.getElementById('btnWorld').addEventListener('click',()=>{
+  const v=parseInt(document.getElementById('seedInput').value,10);
+  if(!Number.isNaN(v)){ seed=v>>>0; sim=new EvoSim(seed); lastBig=0; selectedSpecies=null; document.getElementById('worldSeed').textContent=seed; }
+});
+document.getElementById('btnImport').addEventListener('click',()=>{
+  const genes=decodeGenes(document.getElementById('codeInput').value);
+  const msg=document.getElementById('importMsg');
+  if(!genes){ msg.textContent='コードが読み取れませんでした'; return; }
+  for(let i=0;i<8;i++) sim.spawnCreature({...genes},600+(Math.random()*80-40),400+(Math.random()*80-40));
+  msg.textContent='迎えました！ 中央付近を見てみてください';
+});
+document.getElementById('worldSeed').textContent=seed;
 loop();
 </script>
 </body>
