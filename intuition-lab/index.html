@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>直感のズレラボ | 確率の直感はどれだけ外れる？</title>
+<meta name="description" content="検査の陽性、モンティ・ホール、誕生日、ガチャ、コイン。あなたの確率の直感がどれだけ外れるか、大量シミュレーションで目撃する体験ラボ。">
+<style>
+:root{--bg:#10131a;--panel:#1b1f2a;--ink:#f2efe6;--sub:#a8a294;--acc:#ffb347;--good:#7bd88f;--bad:#ff7b72;--line:#333949}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:18px 10px}
+main{width:100%;max-width:820px}
+h1{font-size:1.7rem;text-align:center;letter-spacing:.05em} h1 .a{color:var(--acc)}
+.lead{color:var(--sub);text-align:center;line-height:1.8;margin:8px 0 4px;font-size:.95rem}
+.progress{text-align:center;color:var(--acc);font-weight:700;margin:10px 0 16px}
+.exp{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 16px;margin-bottom:16px}
+.exp h2{font-size:1.15rem;margin-bottom:8px}
+.exp h2 .no{color:var(--acc)}
+.story{line-height:1.9;font-size:.95rem;color:#e6e1d2}
+.story b{color:var(--acc)}
+.q{margin-top:12px;font-weight:700}
+input[type=range]{width:100%;accent-color:var(--acc);margin:8px 0 2px}
+.predval{text-align:center;font-size:1.3rem;font-weight:800;color:var(--acc)}
+.btn{display:inline-block;background:var(--acc);color:#241a04;border:none;border-radius:999px;padding:11px 22px;font-weight:800;cursor:pointer;font-size:.95rem;margin-top:10px}
+.btn.ghost{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:default}
+.reveal{display:none;margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+.reveal.show{display:block}
+.truth{font-size:1.25rem;font-weight:800}
+.truth .num{color:var(--good)}
+.diff{color:var(--sub);margin-top:2px}
+.why{line-height:1.9;font-size:.92rem;color:#e6e1d2;margin-top:8px}
+canvas.viz{width:100%;background:#0c0e13;border:1px solid var(--line);border-radius:10px;margin-top:10px}
+.doors{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.door{width:88px;height:120px;border-radius:10px 10px 4px 4px;background:#2b3040;border:2px solid var(--line);color:var(--ink);font-size:1.6rem;cursor:pointer}
+.door small{display:block;font-size:.7rem;color:var(--sub)}
+.door.picked{border-color:var(--acc)}
+.door.open{background:#15171d;color:var(--sub)}
+.door.car{border-color:var(--good)}
+.bar-wrap{margin-top:8px;font-size:.9rem}
+.bar{height:22px;border-radius:6px;background:var(--acc);min-width:2px;transition:width .3s}
+.bar.stay{background:#6d768c}
+.final{background:linear-gradient(180deg,#232838,#1b1f2a);border:1px solid var(--acc);border-radius:16px;padding:20px 16px;text-align:center}
+.final .score{font-size:2.2rem;font-weight:900;color:var(--acc)}
+textarea{width:100%;background:#0c0e13;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px}
+.note{color:var(--sub);font-size:.82rem;line-height:1.8;text-align:center;margin-top:10px}
+a{color:var(--acc)}
+</style>
+</head>
+<body>
+<main>
+<h1>直感の<span class="a">ズレ</span>ラボ</h1>
+<p class="lead">確率の直感は、思っているより外れます。<br>まず「あなたの予想」を置いてから、大量シミュレーションで現実を目撃してください。<br>全5問で、あなたの「直感のズレ」が測れます。</p>
+<p class="progress" id="progress">実験 0 / 5 完了</p>
+
+<section class="exp" id="exp1">
+<h2><span class="no">実験1</span> 検査で「陽性」が出たら</h2>
+<p class="story">1000人に1人しかかからない病気があります。検査はかなり優秀で、<b>病気の人を99%当て</b>、<b>健康な人を95%正しく「陰性」</b>と判定します（裏を返すと、健康な人の5%は間違って「陽性」になります）。<br>あなたがこの検査で「陽性」でした。本当に病気の確率は、何%くらいだと思いますか？</p>
+<p class="q">あなたの予想は？</p>
+<input type="range" id="p1" min="0" max="100" value="90">
+<div class="predval"><span id="p1v">90</span>%</div>
+<button class="btn" id="b1">答え合わせ（10万人で見てみる）</button>
+<div class="reveal" id="r1">
+<p class="truth">本当に病気の確率は <span class="num">約1.9%</span> でした</p>
+<p class="diff" id="d1"></p>
+<canvas class="viz" id="c1" width="760" height="300"></canvas>
+<p class="why">10万人で数えると：病気の人は100人いて、99人が陽性（本物）。健康な人は99,900人いて、その5%＝4,995人も間違って陽性（偽物）。陽性の合計5,094人のうち本物は99人だけ＝約1.9%。検査の精度に目が行き、「病気自体がとても珍しい」ことを忘れるのが直感の落とし穴です（これを基準率の無視といいます）。医師を対象にした調査でも、正しく答えられる人は少数だったという有名な話があります。</p>
+</div>
+</section>
+
+<section class="exp" id="exp2">
+<h2><span class="no">実験2</span> モンティ・ホール（ドアの選択）</h2>
+<p class="story">3つのドアのうち1つだけに車、残り2つにヤギがいます。あなたがドアを1つ選ぶと、中身を知っている司会者が、残りのうち<b>ヤギのドアを必ず1つ開けて</b>見せます。ここで選ぶドアを<b>変えると</b>、車を当てる確率はどうなるでしょう？</p>
+<p class="q">「変えた場合の勝率」あなたの予想は？</p>
+<input type="range" id="p2" min="0" max="100" value="50">
+<div class="predval"><span id="p2v">50</span>%</div>
+<div class="doors" id="doors"></div>
+<p class="note" id="montyMsg">ドアをタップして、自分でも試せます</p>
+<div class="bar-wrap">変えた場合の勝率（自動で1000回）<div class="bar" id="barSwitch" style="width:0%"></div><span id="barSwitchT"></span></div>
+<div class="bar-wrap">変えない場合の勝率（自動で1000回）<div class="bar stay" id="barStay" style="width:0%"></div><span id="barStayT"></span></div>
+<button class="btn" id="b2">答え合わせ（自動で1000回試す）</button>
+<div class="reveal" id="r2">
+<p class="truth">変えると勝率は <span class="num">約67%</span>（変えないと約33%）</p>
+<p class="diff" id="d2"></p>
+<p class="why">最初に選んだドアが当たりなのは3回に1回。残り3回に2回は、車は「もう1枚のドア」の向こうにあります。司会者はヤギしか開けないので、その情報が残りの1枚に集中するのです。「残り2枚だから五分五分」という直感が外れる、確率論でいちばん有名な喧嘩（本当に数学者たちが大論争しました）。</p>
+</div>
+</section>
+
+<section class="exp" id="exp3">
+<h2><span class="no">実験3</span> 誕生日が被る確率</h2>
+<p class="story">クラスに何人集まれば、その中に<b>誕生日が同じペア</b>がいる確率が50%を超えるでしょう？（うるう日は除く365日、誕生日は均等に散らばるとします）</p>
+<p class="q">あなたの予想は？（人数）</p>
+<input type="range" id="p3" min="2" max="180" value="100">
+<div class="predval"><span id="p3v">100</span>人</div>
+<button class="btn" id="b3">答え合わせ（確率の曲線を見る）</button>
+<div class="reveal" id="r3">
+<p class="truth">たった <span class="num">23人</span> で50.7% でした</p>
+<p class="diff" id="d3"></p>
+<canvas class="viz" id="c3" width="760" height="300"></canvas>
+<p class="why">直感は「自分と同じ誕生日の人」を探してしまいますが、実際は「誰と誰でもいいペア」が勝負。23人ではペアの組み合わせが253通りもあり、そのどれか1つでも当たればいいので、確率はぐっと上がります。40人で約89%、70人では99.9%を超えます。</p>
+</div>
+</section>
+
+<section class="exp" id="exp4">
+<h2><span class="no">実験4</span> 1%のガチャを100回引いたら</h2>
+<p class="story">当選率<b>1%</b>のガチャを<b>100回</b>引きます。1回以上当たる確率は、何%だと思いますか？</p>
+<p class="q">あなたの予想は？</p>
+<input type="range" id="p4" min="0" max="100" value="95">
+<div class="predval"><span id="p4v">95</span>%</div>
+<button class="btn" id="b4">答え合わせ（10,000人分シミュレーション）</button>
+<div class="reveal" id="r4">
+<p class="truth">当たる確率は <span class="num">約63%</span> でした</p>
+<p class="diff" id="d4"></p>
+<p class="why" id="gachaSim"></p>
+<p class="why">「1%×100回＝100%」ではありません。各回は独立で、外し続ける確率が 0.99 の100乗＝約37% も残ります。逆に言うと、100回引いても約3人に1人は1つも当たりません。期待値（当たるまでの平均回数）は100回ですが、「平均」と「確実」は別物です。</p>
+</div>
+</section>
+
+<section class="exp" id="exp5">
+<h2><span class="no">実験5</span> コイン10回で「ちょうど5回」表</h2>
+<p class="story">コインを10回投げます。表が<b>ちょうど5回</b>出る確率は、何%だと思いますか？</p>
+<p class="q">あなたの予想は？</p>
+<input type="range" id="p5" min="0" max="100" value="50">
+<div class="predval"><span id="p5v">50</span>%</div>
+<button class="btn" id="b5">答え合わせ（10,000セット投げてみる）</button>
+<div class="reveal" id="r5">
+<p class="truth">ちょうど5回は <span class="num">約25%</span> でした</p>
+<p class="diff" id="d5"></p>
+<canvas class="viz" id="c5" width="760" height="300"></canvas>
+<p class="why">「半分ちょうど」が一番起きやすいのは確かですが、それでも4回に1回程度。残りは4回・6回・3回…に散ります。さらに、表が3回以下か7回以上という「かなり偏った」結果も約34%の確率で起きます。10回程度の試行では、偏りは“異常”ではなく“通常”なのです。</p>
+</div>
+</section>
+
+<section class="final" id="final" style="display:none">
+<h2>あなたの直感スコア</h2>
+<p style="color:var(--sub);margin-top:6px">予想と真実のズレの平均（小さいほど直感が正確）</p>
+<p class="score"><span id="scoreNum">-</span></p>
+<p id="scoreRank" style="font-weight:800;font-size:1.1rem"></p>
+<p id="scoreDetail" style="color:var(--sub);line-height:1.8;margin-top:6px"></p>
+<canvas class="viz" id="card" width="1200" height="630" style="max-width:640px"></canvas>
+<div>
+<button class="btn" id="btnCard">結果カードを保存</button>
+<button class="btn ghost" id="btnShare">結果をコピーしてシェア</button>
+</div>
+<textarea id="shareTxt" rows="4" readonly></textarea>
+</section>
+
+<p class="note">すべての確率は厳密計算とモンテカルロ・シミュレーションの両方で検証済み。実験2の「司会者は必ずヤギを開ける」など、前提が変われば答えも変わります。<br>作：Tosh1（auto-lab）／ <a href="../">ハブに戻る</a></p>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const results={}; let doneCount=0;
+function bday(n){ let p=1; for(let i=0;i<n;i++) p*=(365-i)/365; return (1-p)*100; }
+function bindSlider(p,v){ $(p).addEventListener('input',()=>{ $(v).textContent=$(p).value; }); }
+bindSlider('p1','p1v'); bindSlider('p2','p2v'); bindSlider('p3','p3v'); bindSlider('p4','p4v'); bindSlider('p5','p5v');
+function finish(key,pred,truth,diffPts,diffText){
+  results[key]={pred,truth,diff:diffPts}; doneCount++;
+  $('progress').textContent='実験 '+doneCount+' / 5 完了';
+  const dEl=$('d'+key.slice(3)); if(dEl) dEl.textContent=diffText;
+  if(doneCount===5) showFinal();
+}
+/* 実験1：ドットグリッド（1万人：本物の陽性10、偽の陽性500） */
+$('b1').addEventListener('click',()=>{
+  $('b1').disabled=true; $('r1').classList.add('show');
+  const pred=+$('p1').value, truth=1.94;
+  finish('exp1',pred,truth,Math.abs(pred-truth),'あなたの予想 '+pred+'% → ズレ '+(Math.abs(pred-truth)).toFixed(0)+' ポイント');
+  const cv=$('c1'), ctx=cv.getContext('2d'); const W=cv.width,H=cv.height;
+  const cells=[]; for(let i=0;i<10000;i++) cells.push(i<10?2:(i<510?1:0));
+  for(let i=cells.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=cells[i]; cells[i]=cells[j]; cells[j]=t; }
+  let drawn=0; const cols=100, size=6.4, gap=1.1;
+  const timer=setInterval(()=>{
+    const upto=Math.min(10000,drawn+700);
+    for(let i=drawn;i<upto;i++){
+      const x=(i%cols)*(size+gap)+4, y=Math.floor(i/cols)*(size*0.42+gap)+4;
+      ctx.fillStyle=cells[i]===2?'#ff7b72':(cells[i]===1?'#ffb347':'#39415a');
+      ctx.fillRect(x,y,size,size*0.42);
+    }
+    drawn=upto; if(drawn>=10000){ clearInterval(timer);
+      ctx.fillStyle='#f2efe6'; ctx.font='bold 17px sans-serif';
+      ctx.fillText('■ 本当に病気で陽性（10人）',14,H-38);
+      ctx.fillStyle='#ffb347'; ctx.fillText('■ 健康なのに陽性（500人）',14,H-14);
+      ctx.fillStyle='#8b93a7'; ctx.fillText('残りは全員陰性。陽性510人のうち本物は10人だけ。',330,H-14);
+    }
+  },30);
+});
+/* 実験2：モンティ・ホール */
+let mState=null;
+function renderDoors(){
+  const d=$('doors'); d.innerHTML='';
+  for(let i=0;i<3;i++){
+    const b=document.createElement('button'); b.className='door'; b.textContent='🚪';
+    const s=document.createElement('small'); s.textContent='ドア'+(i+1); b.appendChild(s);
+    if(mState){
+      if(mState.pick===i) b.classList.add('picked');
+      if(mState.opened===i){ b.classList.add('open'); b.textContent='🐐'; b.appendChild(s); }
+      if(mState.resolved){
+        if(mState.car===i){ b.classList.add('car'); b.textContent='🚗'; b.appendChild(s); }
+        else if(mState.opened!==i){ b.textContent='🐐'; b.appendChild(s); }
+      }
+    }
+    b.addEventListener('click',()=>doorTap(i)); d.appendChild(b);
+  }
+}
+function doorTap(i){
+  if(!mState||mState.resolved){ mState={car:Math.floor(Math.random()*3),pick:i,opened:null,resolved:false};
+    const goats=[0,1,2].filter(x=>x!==i&&x!==mState.car);
+    mState.opened=goats[Math.floor(Math.random()*goats.length)];
+    $('montyMsg').textContent='司会者がドア'+(mState.opened+1)+'（ヤギ）を開けました。変えるなら他のドア、変えないなら自分のドアをタップ。';
+    renderDoors(); return;
+  }
+  if(i===mState.opened) return;
+  const switched=i!==mState.pick; mState.resolved=true;
+  const win=(i===mState.car);
+  $('montyMsg').textContent=(switched?'変えた':'変えなかった')+'結果：'+(win?'🚗 当たり！':'🐐 ハズレ…')+' もう一度はドアをタップ。';
+  renderDoors();
+}
+renderDoors();
+$('b2').addEventListener('click',()=>{
+  $('b2').disabled=true; $('r2').classList.add('show');
+  let sw=0, st=0; const N=1000;
+  for(let i=0;i<N;i++){ const car=Math.floor(Math.random()*3), pick=Math.floor(Math.random()*3);
+    if(pick!==car) sw++; else st++; }
+  $('barSwitch').style.width=(sw/N*100)+'%'; $('barSwitchT').textContent=' '+(sw/N*100).toFixed(1)+'%';
+  $('barStay').style.width=(st/N*100)+'%'; $('barStayT').textContent=' '+(st/N*100).toFixed(1)+'%';
+  const pred=+$('p2').value, truth=66.7;
+  finish('exp2',pred,truth,Math.abs(pred-truth),'あなたの予想 '+pred+'% → ズレ '+(Math.abs(pred-truth)).toFixed(0)+' ポイント');
+});
+/* 実験3：誕生日の曲線 */
+$('b3').addEventListener('click',()=>{
+  $('b3').disabled=true; $('r3').classList.add('show');
+  const pred=+$('p3').value;
+  const diffPts=Math.abs(bday(pred)-50.7);
+  finish('exp3',pred,23,diffPts,'あなたの予想 '+pred+'人（その人数だと確率は'+bday(pred).toFixed(1)+'%）→ ズレ '+diffPts.toFixed(0)+' ポイント');
+  const cv=$('c3'), ctx=cv.getContext('2d'); const W=cv.width,H=cv.height, pad=44;
+  ctx.strokeStyle='#333949'; ctx.beginPath(); ctx.moveTo(pad,10); ctx.lineTo(pad,H-pad); ctx.lineTo(W-10,H-pad); ctx.stroke();
+  ctx.strokeStyle='#ff7b72'; ctx.setLineDash([5,4]); ctx.beginPath();
+  const y50=10+(1-0.5)*(H-pad-20); ctx.moveTo(pad,y50); ctx.lineTo(W-10,y50); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#ff7b72'; ctx.font='13px sans-serif'; ctx.fillText('50%',8,y50+4);
+  ctx.strokeStyle='#ffb347'; ctx.lineWidth=2.5; ctx.beginPath();
+  for(let n=2;n<=70;n++){ const x=pad+(n-2)/68*(W-pad-20), y=10+(1-bday(n)/100)*(H-pad-20);
+    if(n===2) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+  ctx.stroke(); ctx.lineWidth=1;
+  function marker(n,color,label){ const x=pad+(n-2)/68*(W-pad-20), y=10+(1-bday(n)/100)*(H-pad-20);
+    ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.fill();
+    ctx.font='bold 14px sans-serif'; ctx.fillText(label,x-14,y-12); }
+  marker(23,'#7bd88f','23人');
+  if(pred>=2&&pred<=70) marker(pred,'#f2efe6','予想'+pred+'人');
+  ctx.fillStyle='#a8a294'; ctx.font='12px sans-serif';
+  ctx.fillText('人数 →',W-70,H-14); ctx.fillText('同じ誕生日のペアがいる確率',pad+6,22);
+});
+/* 実験4：ガチャ */
+$('b4').addEventListener('click',()=>{
+  $('b4').disabled=true; $('r4').classList.add('show');
+  let hitPeople=0; const PEOPLE=10000;
+  for(let p=0;p<PEOPLE;p++){ let hit=false;
+    for(let i=0;i<100;i++){ if(Math.random()<0.01){ hit=true; break; } }
+    if(hit) hitPeople++;
+  }
+  const rate=hitPeople/PEOPLE*100;
+  $('gachaSim').textContent='シミュレーション結果：10,000人が100回ずつ引いたところ、1回以上当たったのは '+hitPeople.toLocaleString()+'人（'+rate.toFixed(1)+'%）。理論値63.4%とほぼ一致します。';
+  const pred=+$('p4').value, truth=63.4;
+  finish('exp4',pred,truth,Math.abs(pred-truth),'あなたの予想 '+pred+'% → ズレ '+(Math.abs(pred-truth)).toFixed(0)+' ポイント');
+});
+/* 実験5：コインのヒストグラム */
+$('b5').addEventListener('click',()=>{
+  $('b5').disabled=true; $('r5').classList.add('show');
+  const counts=new Array(11).fill(0); const SETS=10000;
+  for(let s=0;s<SETS;s++){ let h=0; for(let i=0;i<10;i++) if(Math.random()<0.5) h++; counts[h]++; }
+  const cv=$('c5'), ctx=cv.getContext('2d'); const W=cv.width,H=cv.height, pad=44;
+  const max=Math.max.apply(null,counts);
+  counts.forEach((c,i)=>{ const bw=(W-pad-20)/11;
+    const x=pad+i*bw+3, hgt=(c/max)*(H-pad-30), y=H-pad-hgt;
+    ctx.fillStyle=i===5?'#ffb347':'#4a5470';
+    ctx.fillRect(x,y,bw-6,hgt);
+    ctx.fillStyle='#f2efe6'; ctx.font='13px sans-serif'; ctx.fillText(i+'回',x+6,H-pad+18);
+    ctx.font='12px sans-serif'; ctx.fillText((c/SETS*100).toFixed(1)+'%',x+2,y-6);
+  });
+  ctx.fillStyle='#a8a294'; ctx.font='12px sans-serif'; ctx.fillText('表の回数（10,000セットの実測）',pad+6,20);
+  const pred=+$('p5').value, truth=24.6;
+  finish('exp5',pred,truth,Math.abs(pred-truth),'あなたの予想 '+pred+'% → ズレ '+(Math.abs(pred-truth)).toFixed(0)+' ポイント');
+});
+/* 最終スコアとカード */
+const NAMES={exp1:'検査の陽性',exp2:'モンティ・ホール',exp3:'誕生日の一致',exp4:'1%ガチャ×100回',exp5:'コイン10回'};
+function rankOf(score){
+  if(score<=10) return '🏆 確率と友達レベル';
+  if(score<=20) return '✨ なかなか正確な直感';
+  if(score<=35) return '🙂 平均的な人間（直感はそこそこ裏切る）';
+  return '🎲 直感は大胆に外れるタイプ';
+}
+let finalScore=null;
+function showFinal(){
+  const keys=Object.keys(results);
+  finalScore=keys.reduce((s,k)=>s+results[k].diff,0)/keys.length;
+  $('final').style.display='block';
+  $('scoreNum').textContent='ズレ平均 '+finalScore.toFixed(1)+' ポイント';
+  $('scoreRank').textContent=rankOf(finalScore);
+  $('scoreDetail').innerHTML=keys.map(k=>{
+    const r=results[k];
+    return NAMES[k]+'：予想 '+(k==='exp3'?r.pred+'人':r.pred+'%')+' → 真実 '+(k==='exp3'?'23人':r.truth+'%')+'（ズレ '+r.diff.toFixed(0)+'）';
+  }).join('<br>');
+  const txt='【直感のズレラボ】私の直感スコアは「ズレ平均 '+finalScore.toFixed(1)+'ポイント」でした。\n'+keys.map(k=>{ const r=results[k]; return '・'+NAMES[k]+'：予想'+(k==='exp3'?r.pred+'人':r.pred+'%')+'→真実'+(k==='exp3'?'23人':r.truth+'%'); }).join('\n')+'\nあなたの直感は何点？';
+  $('shareTxt').value=txt;
+  drawCard();
+  $('final').scrollIntoView({behavior:'smooth'});
+}
+function drawCard(){
+  const cv=$('card'), ctx=cv.getContext('2d');
+  ctx.fillStyle='#14161c'; ctx.fillRect(0,0,1200,630);
+  ctx.strokeStyle='#ffb347'; ctx.lineWidth=6; ctx.strokeRect(14,14,1172,602);
+  ctx.fillStyle='#f2efe6'; ctx.font='bold 54px sans-serif'; ctx.fillText('直感のズレラボ 結果',52,96);
+  ctx.font='30px sans-serif'; ctx.fillStyle='#a8a294';
+  ctx.fillText('確率の直感は、どれだけ外れた？',52,146);
+  const keys=Object.keys(results); let y=216;
+  keys.forEach(k=>{ const r=results[k];
+    ctx.fillStyle='#f2efe6'; ctx.font='bold 30px sans-serif';
+    ctx.fillText(NAMES[k],52,y);
+    ctx.fillStyle='#ffb347';
+    ctx.fillText('予想 '+(k==='exp3'?r.pred+'人':r.pred+'%'),430,y);
+    ctx.fillStyle='#7bd88f';
+    ctx.fillText('真実 '+(k==='exp3'?'23人':r.truth+'%'),660,y);
+    ctx.fillStyle='#ff7b72';
+    ctx.fillText('ズレ '+r.diff.toFixed(0),920,y);
+    y+=58;
+  });
+  ctx.fillStyle='#ffb347'; ctx.font='bold 46px sans-serif';
+  ctx.fillText('ズレ平均 '+finalScore.toFixed(1)+' ポイント',52,y+26);
+  ctx.fillStyle='#f2efe6'; ctx.font='30px sans-serif';
+  ctx.fillText(rankOf(finalScore),600,y+26);
+}
+$('btnCard').addEventListener('click',()=>{
+  const a=document.createElement('a'); a.download='chokkan-zure-result.png';
+  a.href=$('card').toDataURL('image/png'); a.click();
+});
+$('btnShare').addEventListener('click',()=>{
+  if(navigator.clipboard) navigator.clipboard.writeText($('shareTxt').value);
+  $('btnShare').textContent='コピーしました ✓';
+});
+</script>
+</body>
+</html>
