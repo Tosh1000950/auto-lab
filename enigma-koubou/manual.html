@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>エニグマ工房 取扱説明書</title>
+<style>
+body{background:#14161c;color:#f0ead8;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.9;padding:20px 14px;display:flex;justify-content:center}
+main{max-width:760px;width:100%}
+h1{font-size:1.4rem} h2{font-size:1.1rem;color:#ffb347;margin:26px 0 6px;border-bottom:1px solid #3a3f4d;padding-bottom:4px}
+p,li{font-size:.95rem;color:#d8d2c0} ul{padding-left:1.2em}
+table{border-collapse:collapse;width:100%;margin:8px 0} td,th{border:1px solid #3a3f4d;padding:6px 9px;font-size:.9rem;text-align:left}
+th{color:#ffb347} code{background:#0c0d10;padding:1px 6px;border-radius:5px;font-family:ui-monospace,monospace}
+a{color:#ffb347} .mono{font-family:ui-monospace,monospace;letter-spacing:.08em}
+</style>
+</head>
+<body>
+<main>
+<h1>エニグマ工房 取扱説明書</h1>
+<p>エニグマI（ドイツ軍の暗号機）の再現シミュレーターです。キーを押すたびにローターが回り、電流が「プラグ盤 → ローター3枚 → 反射器 → ローターを逆行 → プラグ盤 → ランプ」の順に流れて別の文字が光ります。同じ文字を打っても、ローターが回るので毎回違う文字になります。</p>
+
+<h2>基本の使い方</h2>
+<ul>
+<li>画面のキー、またはPCのキーボードで A〜Z を打つと暗号化されます（入力と出力は5文字ずつ区切って表示）。</li>
+<li>復号は同じ設定のまま暗号文を打つだけです（相反性）。送る側と受ける側は、まったく同じ設定を共有します。</li>
+<li>ローター窓の ▲▼ で開始位置を変えられます。バックスペースは「最初から打ち直す」方式で状態を合わせています。</li>
+<li>キー入力ごとに、下に信号経路（各部品を通るたびに文字がどう変わったか）が表示されます。</li>
+</ul>
+
+<h2>設定項目</h2>
+<table>
+<tr><th>項目</th><th>意味</th></tr>
+<tr><td>ローター（左・中・右）</td><td>内部配線の違う5種（I〜V）から3枚。順番も鍵の一部。同じものは2枚使えません。</td></tr>
+<tr><td>反射器</td><td>信号を折り返す部品。BとCの2種。反射器があるため「どの文字も自分自身にならない」性質が生まれます。</td></tr>
+<tr><td>リング設定</td><td>ローター内部配線のずれと、隣のローターを回す爪の位置を決めます。</td></tr>
+<tr><td>プラグ盤</td><td>入口と出口で文字を入れ替えるケーブル。最大13組。鍵の大部分はここが担います。</td></tr>
+<tr><td>開始位置</td><td>打ち始める時のローターの文字。文ごとに変えるのが本来の運用です。</td></tr>
+</table>
+<p>設定はコード（<code>ENI1-…</code>）やURLで共有できます。「今日のキーシート」は、その日は誰が開いても同じ鍵になる日替わり設定です（史実でも鍵は日替わりでした）。</p>
+
+<h2>解読ワークベンチの使い方（体験手順）</h2>
+<ul>
+<li>まず設定パネルでプラグなし・リング AAA にして、好きな開始位置で文を暗号化してみてください（例：平文 <span class="mono">KEINEBESONDERENEREIGNISSE</span>）。</li>
+<li>その暗号文をワークベンチに貼り、crib（含まれているはずの言葉）に <span class="mono">BESONDEREN</span> と入れて探索すると、開始位置が特定できます。</li>
+<li>「ローター順も全部試す」をオンにすると、順番まで未知でも探せます（60通り×17,576位置）。</li>
+<li>前提として、リング・反射器・プラグ盤は探索に含めません（パネルの値を使います）。史実の解読でも、まずローターと開始位置を割り出し、プラグは別の方法で詰めていました。</li>
+<li>自己非暗号化ルールにより、cribと同じ文字が暗号文に現れる位置には crib は絶対に来ません。探索結果には、除外できた配置数が表示されます。</li>
+</ul>
+
+<h2>実験アイデア</h2>
+<ul>
+<li>同じ平文を、開始位置だけ変えて暗号化し、暗号文がどう変わるか比べる。</li>
+<li>プラグを1組だけ足して、暗号文の変化を見る（鍵空間がどれだけ広がるかの体感）。</li>
+<li>日替わりキーシートで暗号文を作り、相方にコードなしで「今日の鍵」で復号してもらう。</li>
+<li>ワークベンチで、cribを短くしていくとヒット件数がどう増えるか（誤検出）を観察する。</li>
+</ul>
+
+<h2>正確さについて</h2>
+<p>ローター配線・反射器・ノッチ位置は歴史的資料に基づく既知の値を使い、既知のテストベクトル（AAA開始で <span class="mono">AAAAA → BDZGO</span>）、相反性、自己非暗号化、ダブルステッピングの古典的系列（ADU→ADV→AEW→BFX）で検証しています。本物の軍用運用（メッセージキー手順やインジケータ方式）は再現していません。</p>
+<p><a href="./">← エニグマ工房に戻る</a>　／　<a href="../">auto-lab ハブへ</a></p>
+</main>
+</body>
+</html>
