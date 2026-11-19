@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>エニグマ工房 | 暗号機エニグマI シミュレーター</title>
+<style>
+:root{--bg:#14161c;--panel:#1e222c;--ink:#f0ead8;--sub:#a49e8a;--acc:#ffb347;--line:#3a3f4d;--lamp:#2a2e38}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:16px 10px}
+main{width:100%;max-width:860px}
+h1{font-size:1.5rem;text-align:center;letter-spacing:.08em} h1 .a{color:var(--acc)}
+.sub{color:var(--sub);text-align:center;font-size:.86rem;margin:4px 0 14px;line-height:1.7}
+.machine{background:linear-gradient(180deg,#262a35,#1b1e26);border:1px solid var(--line);border-radius:18px;padding:18px 14px}
+.windows{display:flex;gap:12px;justify-content:center;margin-bottom:6px}
+.win{text-align:center}
+.win .letter{display:block;background:#0c0d10;border:2px solid var(--line);border-radius:8px;font-size:1.9rem;font-weight:800;width:64px;padding:6px 0;color:var(--acc)}
+.win button{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;width:30px;padding:2px 0;cursor:pointer;margin-top:4px}
+.win .rn{color:var(--sub);font-size:.75rem;margin-top:2px}
+.board{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;max-width:640px;margin:12px auto 0}
+.lamp,.key{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700}
+.lamp{background:var(--lamp);color:#6d675a;border:1px solid #343947;font-size:.95rem;transition:all .08s}
+.lamp.on{background:var(--acc);color:#231a05;box-shadow:0 0 18px 4px rgba(255,179,71,.55)}
+.key{background:#262a35;color:var(--ink);border:1px solid var(--line);cursor:pointer;font-size:.95rem;user-select:none}
+.key:active{transform:translateY(2px);background:#313644}
+.io{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px}
+@media(min-width:640px){.io{grid-template-columns:1fr 1fr}}
+.io label{color:var(--sub);font-size:.8rem}
+.io .txt{background:#0c0d10;border:1px solid var(--line);border-radius:10px;padding:10px;min-height:64px;font-family:ui-monospace,monospace;letter-spacing:.14em;word-break:break-all;line-height:1.8}
+#path{display:flex;flex-wrap:wrap;gap:4px;align-items:center;justify-content:center;margin-top:14px;min-height:40px}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:.8rem;text-align:center}
+.chip b{display:block;font-size:1rem;color:var(--acc)}
+.arrow{color:var(--sub)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.bar button{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 14px;cursor:pointer;font-size:.85rem}
+.note{color:var(--sub);font-size:.8rem;line-height:1.8;margin-top:12px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+<h1>エニグマ<span class="a">工房</span></h1>
+<p class="sub">第二次大戦の暗号機「エニグマI」の再現シミュレーター（開発中 Stage 2）。<br>キーを打つと、電流が機械の中をどう通ったかが見えます。</p>
+<div class="machine">
+  <div class="windows" id="windows"></div>
+  <div class="board" id="lamps"></div>
+  <div id="path"><span class="note">キーを打つと信号経路がここに表示されます</span></div>
+  <div class="board" id="keys"></div>
+  <div class="io">
+    <div><label>入力（平文／暗号文）</label><div class="txt" id="inTxt"></div></div>
+    <div><label>出力（ランプの記録）</label><div class="txt" id="outTxt"></div></div>
+  </div>
+  <div class="bar">
+    <button id="btnResetPos">↺ 開始位置を AAA に戻す</button>
+    <button id="btnClear">入力と出力を消す</button>
+  </div>
+</div>
+<p class="note">同じ設定で暗号文を打つと平文に戻ります（相反性）。どの文字も自分自身にはなりません ― これが後の解読の糸口になりました。</p>
+</main>
+<script>
+'use strict';
+/* エニグマ工房 Stage 1：エニグマI 暗号機コア（DOM非依存）
+   ローターI〜V、反射器UKW-B/C、リング設定、プラグボード、ダブルステッピング再現。
+   配線は歴史的資料に基づく既知のもの。 */
+const ROTORS = {
+  I:   { wiring: 'EKMFLGDQVZNTOWYHXUSPAIBRCJ', notch: 'Q' },
+  II:  { wiring: 'AJDKSIRUXBLHWTMCQGZNPYFVOE', notch: 'E' },
+  III: { wiring: 'BDFHJLCPRTXVZNYEIWGAKMUSQO', notch: 'V' },
+  IV:  { wiring: 'ESOVPZJAYQUIRHXLNFTGKDCMWB', notch: 'J' },
+  V:   { wiring: 'VZBRGITYUPSDNHLXAWMJQOFECK', notch: 'Z' }
+};
+const REFLECTORS = {
+  B: 'YRUHQSLDPXNGOKMIEBFZCWVJAT',
+  C: 'FVPJIAOYEDRZXWGCTKUQSBNMHL'
+};
+const A2I = c => c.charCodeAt(0) - 65;
+const I2A = i => String.fromCharCode(65 + ((i % 26) + 26) % 26);
+
+class Enigma {
+  /* config: { rotors:['I','II','III'], reflector:'B', rings:[0,0,0], positions:[0,0,0], plugs:'AZ BY' or {A:'Z'} } */
+  constructor(config = {}) {
+    this.rotorNames = config.rotors || ['I', 'II', 'III'];
+    this.reflectorName = config.reflector || 'B';
+    this.rings = (config.rings || [0, 0, 0]).slice();
+    this.positions = (config.positions || [0, 0, 0]).slice();
+    this.plugMap = Array.from({ length: 26 }, (_, i) => i);
+    const plugs = config.plugs || '';
+    const pairs = typeof plugs === 'string' ? plugs.trim().split(/\s+/).filter(Boolean)
+      : Object.entries(plugs).map(([a, b]) => a + b);
+    for (const p of pairs) {
+      if (p.length !== 2) throw new Error('plug pair must be 2 letters: ' + p);
+      const a = A2I(p[0].toUpperCase()), b = A2I(p[1].toUpperCase());
+      if (a === b) throw new Error('cannot plug a letter into itself');
+      if (this.plugMap[a] !== a || this.plugMap[b] !== b) throw new Error('letter already plugged: ' + p);
+      this.plugMap[a] = b; this.plugMap[b] = a;
+    }
+    this.rotors = this.rotorNames.map(name => {
+      const r = ROTORS[name];
+      if (!r) throw new Error('unknown rotor ' + name);
+      const fwd = r.wiring.split('').map(A2I);
+      const rev = new Array(26);
+      fwd.forEach((v, i) => { rev[v] = i; });
+      return { name, fwd, rev, notch: A2I(r.notch) };
+    });
+    this.reflector = REFLECTORS[this.reflectorName].split('').map(A2I);
+  }
+  step() {
+    const [L, M, R] = this.rotors;
+    const p = this.positions;
+    const mAtNotch = p[1] === M.notch;
+    const rAtNotch = p[2] === R.notch;
+    if (mAtNotch) { p[1] = (p[1] + 1) % 26; p[0] = (p[0] + 1) % 26; }
+    if (rAtNotch) { p[1] = (p[1] + 1) % 26; }
+    p[2] = (p[2] + 1) % 26;
+  }
+  encipherLetter(ch) {
+    let c = A2I(ch.toUpperCase());
+    if (c < 0 || c > 25) return ch;
+    this.step();
+    const path = [{ stage: 'plug-in', letter: I2A(c) }];
+    c = this.plugMap[c]; path.push({ stage: 'plugboard', letter: I2A(c) });
+    for (let i = 2; i >= 0; i--) {
+      const shift = this.positions[i] - this.rings[i];
+      c = ((this.rotors[i].fwd[((c + shift) % 26 + 26) % 26] - shift) % 26 + 26) % 26;
+      path.push({ stage: 'rotor-' + this.rotors[i].name, letter: I2A(c) });
+    }
+    c = this.reflector[c]; path.push({ stage: 'reflector', letter: I2A(c) });
+    for (let i = 0; i <= 2; i++) {
+      const shift = this.positions[i] - this.rings[i];
+      c = ((this.rotors[i].rev[((c + shift) % 26 + 26) % 26] - shift) % 26 + 26) % 26;
+      path.push({ stage: 'rotor-' + this.rotors[i].name + '-rev', letter: I2A(c) });
+    }
+    c = this.plugMap[c]; path.push({ stage: 'lamp', letter: I2A(c) });
+    return { letter: I2A(c), path, positions: this.positions.slice() };
+  }
+  encipher(text) {
+    let out = '';
+    for (const ch of text.toUpperCase()) {
+      if (ch >= 'A' && ch <= 'Z') out += this.encipherLetter(ch).letter;
+      else if (ch === ' ') out += ' ';
+    }
+    return out;
+  }
+  windowString() { return this.positions.map(I2A).join(''); }
+}
+
+
+const LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+let config={rotors:['I','II','III'],reflector:'B',rings:[0,0,0],positions:[0,0,0],plugs:''};
+let machine=new Enigma(config);
+let inBuf='', outBuf='';
+const windowsEl=document.getElementById('windows');
+const lampsEl=document.getElementById('lamps'), keysEl=document.getElementById('keys');
+const stageNames={'plug-in':'入力','plugboard':'プラグ盤','reflector':'反射器','lamp':'ランプ'};
+function stageLabel(st){
+  if(stageNames[st]) return stageNames[st];
+  if(st.startsWith('rotor-')) return 'ローター '+st.replace('rotor-','').replace('-rev','’');
+  return st;
+}
+function renderWindows(){
+  windowsEl.innerHTML=machine.positions.map((p,i)=>
+    '<div class="win"><button data-w="'+i+'" data-d="1">▲</button><span class="letter">'+LETTERS[p]+'</span><button data-w="'+i+'" data-d="-1">▼</button><div class="rn">'+config.rotors[i]+'</div></div>'
+  ).join('');
+  windowsEl.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    const i=+b.dataset.w, d=+b.dataset.d;
+    config.positions[i]=(config.positions[i]+d+26)%26;
+    machine=new Enigma(config); renderWindows();
+  }));
+}
+lampsEl.innerHTML=LETTERS.split('').map(c=>'<div class="lamp" id="lamp-'+c+'">'+c+'</div>').join('');
+keysEl.innerHTML=LETTERS.split('').map(c=>'<button class="key" data-k="'+c+'">'+c+'</button>').join('');
+keysEl.querySelectorAll('.key').forEach(b=>b.addEventListener('click',()=>press(b.dataset.k)));
+function group5(s){ return s.replace(/(.{5})/g,'$1 ').trim(); }
+function press(ch){
+  const res=machine.encipherLetter(ch);
+  inBuf+=ch; outBuf+=res.letter;
+  document.getElementById('inTxt').textContent=group5(inBuf);
+  document.getElementById('outTxt').textContent=group5(outBuf);
+  document.querySelectorAll('.lamp').forEach(l=>l.classList.remove('on'));
+  const lamp=document.getElementById('lamp-'+res.letter); lamp.classList.add('on');
+  setTimeout(()=>lamp.classList.remove('on'),420);
+  document.getElementById('path').innerHTML=res.path.map((p,i)=>
+    (i>0?'<span class="arrow">→</span>':'')+'<span class="chip">'+stageLabel(p.stage)+'<b>'+p.letter+'</b></span>'
+  ).join('');
+  renderWindows();
+}
+document.addEventListener('keydown',e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  const ch=e.key.toUpperCase();
+  if(ch.length===1&&ch>='A'&&ch<='Z') press(ch);
+  if(e.key==='Backspace'){ /* 機械は巻き戻せないので、残りの入力を最初から打ち直して状態を再現する */
+    inBuf=inBuf.slice(0,-1);
+    machine=new Enigma(config); outBuf='';
+    for(const c of inBuf) outBuf+=machine.encipherLetter(c).letter;
+    document.getElementById('inTxt').textContent=group5(inBuf);
+    document.getElementById('outTxt').textContent=group5(outBuf);
+    renderWindows(); }
+});
+document.getElementById('btnResetPos').addEventListener('click',()=>{ config.positions=[0,0,0]; machine=new Enigma(config); renderWindows(); });
+document.getElementById('btnClear').addEventListener('click',()=>{ inBuf=''; outBuf='';
+  document.getElementById('inTxt').textContent=''; document.getElementById('outTxt').textContent=''; });
+renderWindows();
+</script>
+</body>
+</html>
