@@ -260,4 +260,35 @@ class SpeciesTracker{
   }
 }
 
-if(typeof module!=='undefined') module.exports={EvoSim,mulberry32,randomGenes,mutateGenes,derived,SpeciesTracker,speciesName,causalTags};
+
+/* ===== Stage 5：遺伝子コード（種の交換） ===== */
+const GENE_SPEC=[
+  ['size',0.4,2.2,19],['speed',0.2,3.2,21],['sense',10,140,21],['metab',0.3,2.6,21],
+  ['hue',0,360,30],['legs',0,6,7],['legLen',0.2,2.2,21],['head',0,2,3],['tail',0,3,4],
+  ['spikes',0,1,2],['appetite',0,1,21]
+];
+function encodeGenes(g){
+  let n=0n;
+  for(const [k,lo,hi,steps] of GENE_SPEC){
+    const q=Math.min(steps-1,Math.max(0,Math.round((g[k]-lo)/(hi-lo)*(steps-1))));
+    n=n*BigInt(steps)+BigInt(q);
+  }
+  return 'EVO-'+n.toString(36).toUpperCase().padStart(7,'0');
+}
+function decodeGenes(code){
+  const str=String(code).trim().toUpperCase().replace(/^EVO-/,'');
+  if(!/^[0-9A-Z]+$/.test(str)) return null;
+  let n=BigInt('0'); for(const ch of str){ const v=parseInt(ch,36); if(Number.isNaN(v)) return null; n=n*36n+BigInt(v); }
+  const vals={};
+  for(let i=GENE_SPEC.length-1;i>=0;i--){
+    const [k,lo,hi,steps]=GENE_SPEC[i];
+    const q=Number(n%BigInt(steps)); n=n/BigInt(steps);
+    vals[k]=lo+(q/(steps-1))*(hi-lo);
+  }
+  if(n!==0n) return null;
+  vals.legs=Math.round(vals.legs); vals.head=Math.round(vals.head); vals.tail=Math.round(vals.tail);
+  vals.spikes=Math.round(vals.spikes); vals.hue=Math.round(vals.hue)%360;
+  return vals;
+}
+
+if(typeof module!=='undefined') module.exports={EvoSim,mulberry32,randomGenes,mutateGenes,derived,SpeciesTracker,speciesName,causalTags,encodeGenes,decodeGenes};
