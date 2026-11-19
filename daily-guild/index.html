@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>まいにち冒険ギルド | 日常クエスト×発明スロット</title>
+<meta name="description" content="朝届く日常クエストを、発明スロットで作った発明品で攻略するギルド運営ゲーム。友達の発明コードを借りて週末ボスに挑め。">
+<meta property="og:title" content="まいにち冒険ギルド">
+<meta property="og:description" content="日常が冒険になる。発明して、装備して、今日のクエストへ">
+<meta property="og:type" content="website">
+<style>
+:root{--bg:#12101d;--card:#1f1b31;--ink:#f1edff;--sub:#a79fc4;--acc:#ffd23f;--acc2:#7be382;--bad:#ff7a93;--line:#37315a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:16px}
+main{width:100%;max-width:560px;display:flex;flex-direction:column;gap:14px}
+header{text-align:center;padding-top:6px}
+h1{font-size:1.85rem} h1 .a{color:var(--acc)}
+.tag{color:var(--sub);font-size:.85rem;margin-top:4px}
+h2{font-size:1.05rem;margin-bottom:8px}
+.card{background:var(--card);border-radius:16px;padding:18px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.stats{display:flex;justify-content:space-around;text-align:center;flex-wrap:wrap;gap:8px}
+.stats b{display:block;font-size:1.2rem}
+.stats span{color:var(--sub);font-size:.75rem}
+.bar{height:10px;background:#100d1c;border-radius:99px;overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;background:var(--acc2);width:0%}
+.quest{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:10px}
+.quest .t{font-weight:800;line-height:1.45}
+.quest .d{color:var(--sub);font-size:.88rem;line-height:1.6;margin-top:2px}
+.quest .meta{font-size:.78rem;color:var(--acc);margin-top:4px}
+.quest select{width:100%;margin-top:10px;padding:10px;border-radius:10px;background:#100d1c;color:var(--ink);border:1px solid var(--line);font-size:.92rem}
+.quest .go{width:100%;margin-top:8px;padding:12px;border:none;border-radius:10px;background:var(--acc);color:#221a03;font-weight:800;font-size:1rem;cursor:pointer}
+.quest .go:disabled{opacity:.45}
+.quest .res{margin-top:10px;line-height:1.7;font-size:.92rem}
+.ok{color:var(--acc2);font-weight:700}.ng{color:var(--bad);font-weight:700}
+.inv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.inv div{background:#100d1c;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:.85rem;line-height:1.55}
+.inv .nm{font-weight:700}
+.rN{color:#cfc4a8}.rR{color:#6fd3ff}.rSR{color:#c792ff}.rUR{color:#ffd23f}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row button,.row input{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:#100d1c;color:var(--ink);font-size:.93rem}
+.row button{cursor:pointer}
+#spinBtn{width:100%;padding:16px;font-size:1.2rem;font-weight:800;border:none;border-radius:14px;background:linear-gradient(180deg,#ffd23f,#ff9a3d);color:#221503;cursor:pointer}
+#spinBtn:disabled{opacity:.5}
+#log{line-height:1.8;font-size:.92rem}
+#log p{margin-top:6px}
+.boss{border:1px dashed var(--bad);border-radius:12px;padding:14px;margin-top:6px}
+footer{color:var(--sub);font-size:.78rem;text-align:center;line-height:1.7;padding-bottom:12px}
+.msg{color:#ffb3c1;font-size:.85rem;min-height:1.2em;margin-top:6px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>まいにち<span class="a">冒険ギルド</span></h1>
+    <p class="tag">発明して、装備して、今日のクエストへ。日常が冒険になるギルド。</p>
+  </header>
+
+  <section class="card">
+    <div class="stats">
+      <div><b id="stLv">Lv.1</b><span id="stTitle">駆け出し冒険者</span></div>
+      <div><b id="stCoins">0</b><span>コイン</span></div>
+      <div><b id="stTickets">3</b><span>発明チケット</span></div>
+      <div><b id="stFound">0</b><span>図鑑 発見数</span></div>
+      <div><b id="stStreak">0</b><span>🔥 連続プレイ日数</span></div>
+    </div>
+    <div class="bar"><i id="expBar"></i></div>
+    <p style="color:var(--sub);font-size:.8rem;margin-top:6px" id="expNext"></p>
+  </section>
+
+  <section class="card">
+    <h2 id="qHead">今日のクエスト</h2>
+    <p id="catHint" style="color:var(--sub);font-size:.88rem"></p>
+    <div id="tutorial"></div>
+    <div id="quests"></div>
+  </section>
+
+  <section class="card">
+    <h2>発明工房（チケット1枚で1回）</h2>
+    <button id="spinBtn" type="button">🎰 発明スロットを回す</button>
+    <p id="newInv" style="margin-top:10px;line-height:1.7"></p>
+    <h2 style="margin-top:14px">所持している発明品</h2>
+    <div class="inv" id="invList"></div>
+    <div style="height:12px"></div>
+    <div class="row">
+      <input id="codeIn" type="text" placeholder="友達の発明コード INV-XXXX" autocomplete="off" style="text-transform:uppercase">
+      <button id="codeBtn" type="button">今日だけ借りる</button>
+      <button id="lendBtn" type="button">最強の発明を貸す文をコピー</button>
+    </div>
+    <p class="msg" id="codeMsg"></p>
+  </section>
+
+  <section class="card">
+    <h2>週替わりボス</h2>
+    <div class="boss" id="bossBox"></div>
+  </section>
+
+  <section class="card">
+    <h2>今日の冒険ログ</h2>
+    <div id="log"><p style="color:var(--sub)">まだ冒険していない。クエストに挑むと、ここに顛末が残ります。</p></div>
+    <div style="height:12px"></div>
+    <div class="row">
+      <button id="shareBtn" type="button">今日の冒険をシェア</button>
+      <button id="cardBtn" type="button">冒険カード画像を作る</button>
+    </div>
+  </section>
+
+  <footer>判定は日付と発明で決まるので、リロードしても振り直せません（ズル防止）。<br>記録はこの端末にだけ保存されます。発明品は架空です。</footer>
+</main>
+<canvas id="cv" width="1200" height="630" style="display:none"></canvas>
+<script>
+"use strict";
+var ITEMS=[
+{n:"傘",e:"☂️"},{n:"帽子",e:"🧢"},{n:"靴下",e:"🧦"},{n:"布団",e:"🛏️"},{n:"冷蔵庫",e:"🧊"},
+{n:"自転車",e:"🚲"},{n:"メガネ",e:"👓"},{n:"財布",e:"👛"},{n:"ノート",e:"📓"},{n:"コップ",e:"🥛"},
+{n:"鍵",e:"🔑"},{n:"椅子",e:"🪑"},{n:"時計",e:"⏰"},{n:"歯ブラシ",e:"🪥"},{n:"カーテン",e:"🪟"},
+{n:"玄関マット",e:"🚪"},{n:"水筒",e:"🍶"},{n:"ハンガー",e:"👕"},{n:"枕",e:"💤"},{n:"スリッパ",e:"🩴"}];
+var FUNCS=[
+{n:"ホメホメ",v:"使う人をとにかく褒めてくれる"},{n:"オートオープン",v:"ちょうどいい瞬間に自動で開く"},
+{n:"おしゃべり",v:"退屈そうにしていると話しかけてくる"},{n:"ほかほか",v:"いつでもほんのり温かい"},
+{n:"ひんやり",v:"いつでもひんやり冷たい"},{n:"追尾",v:"持ち主の後ろをそっとついてくる"},
+{n:"応援団",v:"大事な場面で全力で応援してくれる"},{n:"謝罪",v:"何かあると先に謝ってくれる"},
+{n:"子守唄",v:"眠くなると子守唄を歌ってくれる"},{n:"いい香り",v:"近づくといい香りがする"},
+{n:"ふわり浮遊",v:"少しだけ浮く"},{n:"のびのび",v:"必要な長さまで伸びる"},
+{n:"全記録",v:"起きたことを全部記録してくれる"},{n:"通訳",v:"動物の気持ちを通訳してくれる"},
+{n:"励まし",v:"落ち込んでいると励ましてくれる"},{n:"数え屋",v:"周りのものを正確に数えてくれる"},
+{n:"見張り番",v:"留守の間しっかり見張ってくれる"},{n:"かくれんぼ",v:"探されると上手に隠れる"},
+{n:"お運び",v:"小さな荷物を運んでくれる"},{n:"ゆらゆら",v:"心地よく揺れてくれる"}];
+var BUTS=[
+"ただし電池は1日しか持たない","ただし雨の日だけ本気を出す","ただし持ち主を少し尊敬してくる",
+"ただし夜中に小声で歌うことがある","ただし使いすぎると照れて止まる","ただし猫にだけ大人気",
+"ただし説明書が辞典くらい分厚い","ただし充電中は完全に寝ている","ただし気分で性能が変わる",
+"ただし声が思ったより大きい","ただし時々休みたがる","ただし褒められると急に強くなる",
+"ただし月曜日はやる気がない","ただし持ち主の真似をし始める","ただし年に一度だけ進化する",
+"ただし名前を付けると懐いてくる"];
+var MISSIONS=[
+ // あるく
+ {c:"あるく",t:"いつもと違う道を通る",d:"通勤・買い物・散歩、いつもの道を1本だけ変えてみる。",s:1},
+ {c:"あるく",t:"一番遠くの自動販売機まで行く",d:"近所で一番遠いと思う自販機まで歩いて、何か1つ買う。",s:2},
+ {c:"あるく",t:"階段だけで一日過ごす",d:"エレベーターとエスカレーターを今日だけ封印。",s:3},
+ {c:"あるく",t:"空を見上げて1分歩く",d:"安全な場所で、雲の形を1つ見つける。写真に撮ってもいい。",s:1},
+ {c:"あるく",t:"近所の「一番古そうなもの」を探す",d:"石碑、看板、木。古そうなものを見つけて観察する。",s:2},
+ {c:"あるく",t:"信号で止まったら深呼吸3回",d:"今日の移動中、赤信号のたびに深呼吸。",s:1},
+ {c:"あるく",t:"歩数777歩ぴったりを狙う",d:"歩数計を見ながら、777歩で止まれそうな瞬間を狙う。外してもOK。",s:2},
+ {c:"あるく",t:"影と競争する",d:"自分の影より先に角を曲がる、を3回やってみる。",s:1},
+ // たべる
+ {c:"たべる",t:"冷蔵庫の奥のものを食べる",d:"一番奥で眠っている食材を1つ救出して食べる。",s:1},
+ {c:"たべる",t:"食べたことのない味を買う",d:"お菓子・飲み物・調味料、未経験の味に1つ挑戦。",s:2},
+ {c:"たべる",t:"一食だけ利き手じゃない方で食べる",d:"箸やスプーンを逆の手で。こぼしても笑って済ます。",s:2},
+ {c:"たべる",t:"最初のひと口を目を閉じて味わう",d:"今日の食事の最初のひと口だけ、真剣に味わう。",s:1},
+ {c:"たべる",t:"誰かのおすすめをそのまま買う",d:"店員さんや家族のおすすめを、理由を聞かずに採用する。",s:2},
+ {c:"たべる",t:"温かい飲み物を両手で持つ",d:"1分間、両手で包んで温かさを感じる。それだけ。",s:1},
+ {c:"たべる",t:"ご飯に「いつもと違う何か」を足す",d:"ふりかけ、海苔、チーズ。組み合わせ実験を1回。",s:1},
+ {c:"たべる",t:"夕食のメニューをサイコロで決める",d:"候補3つを書いて、目を閉じて指で選ぶのもOK。",s:2},
+ // はなす
+ {c:"はなす",t:"誰かに「ありがとう」を理由つきで言う",d:"「〜してくれてありがとう」まで言うのがクエスト条件。",s:1},
+ {c:"はなす",t:"久しぶりの人に短い連絡をする",d:"「元気？」の一言だけでも達成。返信は気にしない。",s:2},
+ {c:"はなす",t:"今日の小さな良いことを誰かに話す",d:"どんなに小さくてもいい。話すことで確定させる。",s:1},
+ {c:"はなす",t:"店員さんに一言プラスする",d:"「ありがとうございます」に天気や労いの一言を足す。",s:1},
+ {c:"はなす",t:"自分の今日のクエストを宣言する",d:"この手帳のクエストを誰かに言うと達成率が上がる（気がする）。",s:2},
+ {c:"はなす",t:"質問を1つだけ投げかける",d:"「最近どう？」以外の質問を誰かに1つ。",s:2},
+ {c:"はなす",t:"褒めポイントを見つけて伝える",d:"持ち物・仕事・工夫、何でもいいので具体的に褒める。",s:2},
+ {c:"はなす",t:"家族や友人の「最近の推し」を聞く",d:"自分からは話さず、聞き役に徹する。",s:1},
+ // つくる
+ {c:"つくる",t:"机の上を「作品」として並べ直す",d:"片付けではなく配置アートとして。写真を撮ると達成感が増す。",s:1},
+ {c:"つくる",t:"今日の日付入りメモを紙に書く",d:"手書きで日付と一言。財布や本に挟んでおく。",s:1},
+ {c:"つくる",t:"落書きを1つ描く",d:"上手さは無関係。丸と線だけでも立派な作品。",s:1},
+ {c:"つくる",t:"スマホの壁紙を今日限定で変える",d:"昔の写真や撮りたてを壁紙に。明日戻してもいい。",s:1},
+ {c:"つくる",t:"4コマの出来事を箇条書きにする",d:"今日起きたことを起承転結っぽく4行で。",s:2},
+ {c:"つくる",t:"名前のない料理に名前を付ける",d:"今日食べた何かに、メニューっぽい名前を付けて宣言する。",s:1},
+ {c:"つくる",t:"折り紙か紙工作を1つ",d:"鶴でなくていい。紙飛行機でも箱でも。",s:2},
+ {c:"つくる",t:"今日の自分に称号を付ける",d:"例：「布団干しの達人」。声に出すと効果が高い。",s:1},
+ // やすむ
+ {c:"やすむ",t:"5分だけ何もしない",d:"スマホを伏せて、タイマー5分。何もしないのが仕事。",s:2},
+ {c:"やすむ",t:"一番好きな曲を1曲だけ聴く",d:"ながら聴き禁止。1曲だけ集中して聴く。",s:1},
+ {c:"やすむ",t:"目を閉じて音を3つ数える",d:"今いる場所の音を3つ見つける。遠くの音ほど高得点。",s:1},
+ {c:"やすむ",t:"温かいタオルで顔を覆う",d:"レンジで温めたタオルで30秒。簡易サウナ気分。",s:2},
+ {c:"やすむ",t:"今日は1つだけ「やらないこと」を決める",d:"やらないと決めたら、それは達成。",s:2},
+ {c:"やすむ",t:"窓の外をぼんやり眺める",d:"3分間、目的なく外を見る。",s:1},
+ {c:"やすむ",t:"靴下を一番気持ちいいやつにする",d:"お気に入りを今日履く。特別な日は自分で作る。",s:1},
+ {c:"やすむ",t:"寝る前に明日楽しみなことを1つ言う",d:"小さくてOK。「朝のパンを楽しみにする」等。",s:1},
+ // そと・その他
+ {c:"そと",t:"今日の空の色に名前を付ける",d:"「洗いたてのシャツ色」など、色の名前は自由。",s:1},
+ {c:"そと",t:"季節の証拠を1つ見つける",d:"花、虫、気温、空気。今の季節らしいものを1つ。",s:1},
+ {c:"そと",t:"誰かの落とし物を届ける／ゴミを1つ拾う",d:"小さな親切を1つ。見返りはEXPのみ。",s:2},
+ {c:"そと",t:"一番近い公園か広場に寄る",d:"通り過ぎるだけでも達成。ベンチに座れば大達成。",s:2},
+ {c:"そと",t:"月か星を1つ見つける",d:"曇っていたら「雲の向こうにある」と想像で達成。",s:1},
+ {c:"そと",t:"鳥の声を聞き分ける",d:"何種類の鳥の声が聞こえるか数える。1種類でも達成。",s:1},
+ {c:"そと",t:"夕日の時刻を調べて眺める",d:"間に合わなければ、空が暗くなる瞬間を見る。",s:2},
+ {c:"そと",t:"近所の新しいものを1つ発見する",d:"新しい店、看板、工事。新しさに気づくのがクエスト。",s:2}];
+/* ===== 発明システム（純ロジック） ===== */
+var ITEM_CAT=["そと","そと","やすむ","やすむ","たべる","あるく","はなす","はなす","つくる","たべる","そと","やすむ","あるく","やすむ","やすむ","そと","あるく","つくる","やすむ","あるく"];
+var TOTAL=ITEMS.length*FUNCS.length*BUTS.length;
+function hashN(n){ var x=(n*2654435761)>>>0; x^=x>>>15; return (x*2246822519)>>>0; }
+function rarityOf(n){ var r=hashN(n)%1000; if(r<30)return"UR"; if(r<150)return"SR"; if(r<500)return"R"; return"N"; }
+var POWER_BASE={N:10,R:18,SR:30,UR:50};
+function powerOf(n){ return POWER_BASE[rarityOf(n)] + (hashN(n^0x77)%11); }
+function nameOf(i,f,n){ var SUF=["DX","改","Pro","零号機","タイプR","mini","EX","・改良型"]; return FUNCS[f].n+ITEMS[i].n+" "+SUF[hashN(n)%SUF.length]; }
+function encodeCode(i,f,b){
+  var n=(i*FUNCS.length+f)*BUTS.length+b;
+  return "INV-"+n.toString(36).toUpperCase().padStart(3,"0")+((n*7+13)%36).toString(36).toUpperCase();
+}
+function decodeCode(code){
+  if(!code) return null;
+  var s=String(code).trim().toUpperCase().replace(/^INV-/,"").replace(/[\s-]/g,"");
+  if(s.length!==4) return null;
+  var n=parseInt(s.slice(0,3),36);
+  if(isNaN(n)||n>=TOTAL) return null;
+  if(((n*7+13)%36).toString(36).toUpperCase()!==s[3]) return null;
+  return {i:Math.floor(n/(BUTS.length*FUNCS.length)), f:Math.floor(n/BUTS.length)%FUNCS.length, b:n%BUTS.length};
+}
+function makeInvention(i,f,b){
+  var n=(i*FUNCS.length+f)*BUTS.length+b;
+  return {i:i,f:f,b:b,n:n,code:encodeCode(i,f,b),name:nameOf(i,f,n),rarity:rarityOf(n),power:powerOf(n),cat:ITEM_CAT[i]};
+}
+function inventionFromCode(code){ var d=decodeCode(code); return d? makeInvention(d.i,d.f,d.b):null; }
+/* ===== クエスト（純ロジック） ===== */
+function dateKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function seedFrom(key){ var h=2166136261; for(var i=0;i<key.length;i++){ h^=key.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function rng(seed){ var a=seed>>>0; return function(){ a|=0; a=(a+0x6D2B79F5)|0; var t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+function pickQuests(key){
+  var r=rng(seedFrom(key)), idx=MISSIONS.map(function(_,i){return i;});
+  for(var i=idx.length-1;i>0;i--){ var j=Math.floor(r()*(i+1)); var tmp=idx[i]; idx[i]=idx[j]; idx[j]=tmp; }
+  return idx.slice(0,3);
+}
+function questNeed(m,lv){ return m.s*15 + (lv? (lv-1)*2 : 0); }
+function chanceOf(inv,m,fatigue,lv,tune){
+  var c=50+(inv.power-questNeed(m,lv))+(inv.cat===m.c?15:0)-(fatigue?10:0)+(tune?10:0);
+  return Math.max(20,Math.min(97,c));
+}
+function rollFor(key,slot,code){ return Math.floor(rng(seedFrom(key+":"+slot+":"+code))()*100); }
+function levelFor(exp){ var lv=1,need=50,rest=exp; while(rest>=need){ rest-=need; lv++; need+=50; } return {level:lv,into:rest,need:need}; }
+var TITLES=["駆け出し冒険者","日常の旅人","小さな勇者","街の冒険家","クエスト職人","日常マスター","伝説の日常王"];
+function titleFor(level){ return TITLES[Math.min(TITLES.length-1,Math.floor((level-1)/3))]; }
+/* ===== ボス ===== */
+var BOSSES=[
+ {n:"週末ゴーレム「月曜の予感」",d:"日曜の夕方に現れる、なんとなく重い気配の主。"},
+ {n:"大掃除ドラゴン",d:"押し入れの奥で眠っていた、片付けられない物の化身。"},
+ {n:"未読メールスライム大群",d:"溜まった未読が合体した。開く勇気が試される。"},
+ {n:"冷蔵庫の賞味期限リッチ",d:"奥の食材たちを従える、期限切れ寸前の魔術師。"},
+ {n:"布団の魔王「二度寝」",d:"休日の朝に現れる最強の誘惑。"},
+ {n:"洗濯物マウンテン",d:"畳まれざる衣類の山。その頂はまだ誰も見ていない。"},
+ {n:"通知の嵐エレメンタル",d:"鳴り止まない通知の精霊。集中力を奪いに来る。"},
+ {n:"積み本タワーゴーレム",d:"いつか読む本が積み上がって意思を持った。"}];
+function weekKeyOf(d){
+  var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  var shift=(x.getDay()+6)%7; x.setDate(x.getDate()-shift);
+  return dateKey(x);
+}
+function bossFor(weekKey){ return BOSSES[seedFrom(weekKey)%BOSSES.length]; }
+function bossChance(top3,distinct){ return Math.max(5,Math.min(95, 40+Math.floor((top3-120)/2)+(distinct?10:0))); }
+function topPowerSum(invs,k){ var ps=invs.map(function(v){return v.power;}).sort(function(a,b){return b-a;}); var s=0; for(var i=0;i<Math.min(k,ps.length);i++) s+=ps[i]; return s; }
+/* ===== 冒険ログ ===== */
+var LOG_OK=[
+ "「{q}」へ出発。{inv}がここぞとばかりに活躍し、見事クリア。ギルドに拍手が起きた。",
+ "{inv}の真価が発揮された。「{q}」はあっけなく攻略され、依頼人は大喜びだった。",
+ "「{q}」攻略戦。{inv}との相性が抜群で、予定より早く帰還。お茶が美味しい。",
+ "冒険者たちは{inv}を掲げて「{q}」に挑み、堂々の成功。記録係も思わず笑顔。",
+ "「{q}」は難関と思われたが、{inv}の一手で状況が一変。そのまま制圧に成功した。"];
+var LOG_NG=[
+ "「{q}」に挑んだが、{inv}は今日に限って本気を出さず。撤退もまた冒険である。",
+ "{inv}を持って「{q}」へ。しかし一歩届かず。悔しさは明日の糧になる。",
+ "「{q}」攻略は失敗。だが{inv}の新しい弱点が分かったのは収穫だった。",
+ "「{q}」の前に敗退。しかし誰も怪我はなく、ギルドは無事を祝った。",
+ "{inv}は頑張った。「{q}」には届かなかったが、その姿は皆の記憶に残った。"];
+function logText(ok,key,slot,qName,invName){
+  var arr=ok?LOG_OK:LOG_NG;
+  var t=arr[seedFrom(key+":log:"+slot)%arr.length];
+  return t.replace("{q}",qName).replace("{inv}",invName);
+}
+function streakFrom(keys,todayKey){
+  var set={}; keys.forEach(function(k){ set[k]=1; });
+  function prev(k){ var p=k.split("-").map(Number); var d=new Date(p[0],p[1]-1,p[2]); d.setDate(d.getDate()-1); return dateKey(d); }
+  var n=0, grace=false, cur=todayKey;
+  if(!set[cur]) cur=prev(cur);
+  while(true){
+    if(set[cur]){ n++; cur=prev(cur); }
+    else if(!grace){ grace=true; cur=prev(cur); }
+    else break;
+  }
+  return n;
+}
+function lendText(inv){
+  return "【今日の迷発明を貸します】"+inv.name+"（パワー"+inv.power+"／"+inv.rarity+"）\n"+ITEMS[inv.i].n+"が"+FUNCS[inv.f].v+"。"+BUTS[inv.b]+"。\n今日だけ貸すから、クエストやボス戦に使ってみて 👉 発明コード "+inv.code+"\n#まいにち冒険ギルド";
+}
+function verdictFor(ok,chance,roll){
+  if(ok){
+    if(chance<=40) return "奇跡の大逆転！";
+    if(roll<=5) return "圧勝。文句なし";
+    if(chance>=85) return "順当勝ち";
+    return "見事な攻略";
+  }
+  if(chance>=85) return "まさかの大ポカ…";
+  if(chance<=30) return "挑戦は立派だった";
+  if(roll-chance<=5) return "あと一歩の惜敗";
+  return "力及ばず";
+}
+function buildShare(key,day,exp,level,streak){
+  var lines=day.quests.map(function(qi,k){
+    var r=day.results[k];
+    return (r?(r.success?"✅":"❌"):"⬜")+" "+MISSIONS[qi].t+(r?("（"+r.invName+"）評語："+(r.verdict||"")):"");
+  });
+  var grid=day.quests.map(function(qi,k){ var r=day.results[k]; return r?(r.success?"🟩":"🟥"):"⬜"; }).join("");
+  return "まいにち冒険ギルド "+key+" Lv."+level+(streak&&streak>1?" 🔥"+streak+"日連続":"")+"\n"+grid+"\n"+lines.join("\n")+"\n累計 "+exp+" EXP #まいにち冒険ギルド";
+}
+if(typeof module!=="undefined"&&module.exports){ module.exports={ITEMS:ITEMS,FUNCS:FUNCS,BUTS:BUTS,MISSIONS:MISSIONS,TOTAL:TOTAL,makeInvention:makeInvention,inventionFromCode:inventionFromCode,encodeCode:encodeCode,decodeCode:decodeCode,pickQuests:pickQuests,questNeed:questNeed,chanceOf:chanceOf,rollFor:rollFor,levelFor:levelFor,titleFor:titleFor,weekKeyOf:weekKeyOf,bossFor:bossFor,bossChance:bossChance,topPowerSum:topPowerSum,logText:logText,buildShare:buildShare,streakFrom:streakFrom,lendText:lendText,verdictFor:verdictFor,powerOf:powerOf,rarityOf:rarityOf}; }
+
+/* ===== 画面・状態 ===== */
+if(typeof document!=="undefined"){
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var today=new Date(); var tKey=dateKey(today); var wKey=weekKeyOf(today);
+  var LS="dailyguild_v1";
+  var store=null;
+  try{ store=JSON.parse(localStorage.getItem(LS)||"null"); }catch(e){}
+  if(!store||!store.days){
+    var starter=encodeCode(0,1,0);
+    store={exp:0,coins:0,tickets:3,inv:[starter],found:{},borrowed:null,days:{},boss:{},allClear:{},tune:{},tutorialDone:false};
+    store.found[starter]=1;
+  }
+  if(!store.tune) store.tune={}; if(store.tutorialDone===undefined) store.tutorialDone=false;
+  if(!store.days[tKey]) store.days[tKey]={quests:pickQuests(tKey),results:{}};
+  var day=store.days[tKey];
+  function save(){ try{ localStorage.setItem(LS,JSON.stringify(store)); }catch(e){} }
+  function usableInventions(){
+    var list=store.inv.map(inventionFromCode).filter(Boolean);
+    if(store.borrowed&&store.borrowed.date===tKey){
+      var b=inventionFromCode(store.borrowed.code);
+      if(b&&!store.inv.includes(b.code)){ b.borrowed=true; list.push(b); }
+    }
+    return list;
+  }
+  function renderStats(){
+    var lv=levelFor(store.exp);
+    $("stLv").textContent="Lv."+lv.level; $("stTitle").textContent=titleFor(lv.level);
+    $("stCoins").textContent=store.coins; $("stTickets").textContent=store.tickets;
+    $("stFound").textContent=Object.keys(store.found).length+" / "+TOTAL;
+    var playedKeys=Object.keys(store.days).filter(function(k){ return Object.keys(store.days[k].results||{}).length>0; });
+    $("stStreak").textContent=streakFrom(playedKeys,tKey);
+    $("expBar").style.width=(lv.into/lv.need*100)+"%";
+    var playedDays=Object.keys(store.days).filter(function(k){ return Object.keys(store.days[k].results||{}).length>0 || store.days[k].tutorialLog; }).length;
+    var badge= playedDays>=30? " ／ 🏅30日継続バッジ獲得！" : playedDays>=14? " ／ 🏅14日継続バッジ獲得！" : playedDays>=7? " ／ 🏅7日継続バッジ獲得！" : "";
+    $("expNext").textContent="累計 "+store.exp+" EXP ／ 次のレベルまで あと "+(lv.need-lv.into)+" EXP"+badge;
+    $("spinBtn").disabled=store.tickets<=0;
+    $("spinBtn").textContent= store.tickets>0 ? "🎰 発明スロットを回す（残りチケット "+store.tickets+"）" : "チケット不足（クエスト成功で手に入る）";
+  }
+  function renderInv(){
+    var box=$("invList"); box.innerHTML="";
+    usableInventions().forEach(function(inv){
+      var d=document.createElement("div");
+      d.innerHTML="";
+      var nm=document.createElement("div"); nm.className="nm"; nm.textContent=ITEMS[inv.i].e+" "+inv.name+(inv.borrowed?"（借り物・今日まで）":"");
+      var meta=document.createElement("div");
+      meta.innerHTML="<span class='r"+inv.rarity+"'>★"+inv.rarity+"</span> パワー "+inv.power+" ／ 相性："+inv.cat+" ／ "+inv.code;
+      d.appendChild(nm); d.appendChild(meta); box.appendChild(d);
+    });
+  }
+  function renderQuests(){
+    $("qHead").textContent="今日のクエスト（"+tKey+"）";
+    var cats={}; day.quests.forEach(function(qi){ cats[MISSIONS[qi].c]=(cats[MISSIONS[qi].c]||0)+1; });
+    var topCat=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];})[0];
+    $("catHint").textContent="今日の現場傾向：「"+topCat+"」系が多め。相性◎の発明が有利です。";
+    var tut=$("tutorial"); tut.innerHTML="";
+    if(!store.tutorialDone){
+      var td=document.createElement("div"); td.className="quest"; td.style.borderColor="var(--acc2)";
+      td.innerHTML="<div class='t'>🎓 チュートリアルクエスト：コップ1杯の水を飲む</div><div class='d'>最初のクエストは今すぐ・室内でできるもの。スターター発明で挑戦して、成功の手触りを掴もう。</div>";
+      var tb=document.createElement("button"); tb.className="go"; tb.type="button"; tb.textContent="スターター発明で挑戦する（成功率100%）";
+      tb.addEventListener("click",function(){
+        store.tutorialDone=true; store.exp+=30; store.tickets+=1;
+        day.tutorialLog="🎓 チュートリアル完了。水を飲む、という日常が最初の冒険になった。EXP +30、チケット +1。";
+        save(); renderAll();
+      });
+      td.appendChild(tb); tut.appendChild(td);
+    }
+    var box=$("quests"); box.innerHTML="";
+    day.quests.forEach(function(qi,k){
+      var m=MISSIONS[qi];
+      var div=document.createElement("div"); div.className="quest";
+      var t=document.createElement("div"); t.className="t"; t.textContent=(k+1)+". "+m.t;
+      var d=document.createElement("div"); d.className="d"; d.textContent=m.d;
+      var meta=document.createElement("div"); meta.className="meta";
+      meta.textContent="カテゴリ："+m.c+" ／ 難易度 "+"★".repeat(m.s)+" ／ 要求パワー "+questNeed(m,levelFor(store.exp).level)+"（ギルドLvで上昇）";
+      div.appendChild(t); div.appendChild(d); div.appendChild(meta);
+      var res=day.results[k];
+      if(res){
+        var r=document.createElement("div"); r.className="res";
+        r.innerHTML=(res.success? "<span class='ok'>✅ 攻略成功！</span>" : "<span class='ng'>❌ 攻略失敗…</span>")
+          +" "+res.invName+"（成功率 "+res.chance+"% ／ ダイス "+res.roll+"）<br>評語：<b>"+(res.verdict||"")+"</b> ／ 報酬：EXP +"+res.exp+"、コイン +"+res.coins+(res.ticket?"、チケット +1":"");
+        div.appendChild(r);
+      }else{
+        var usedCodes={}; Object.keys(day.results).forEach(function(kk){ usedCodes[day.results[kk].code]=true; });
+        var sel=document.createElement("select");
+        usableInventions().forEach(function(inv){
+          var o=document.createElement("option"); o.value=inv.code;
+          o.textContent=inv.name+"（パワー"+inv.power+"／"+inv.rarity+(inv.cat===m.c?"／相性◎":"")+(usedCodes[inv.code]?"／本日使用済み・軽い疲労":"")+"）";
+          sel.appendChild(o);
+        });
+        var info=document.createElement("div"); info.className="meta";
+        function upd(){ var inv=inventionFromCode(sel.value); if(!inv){ info.textContent=""; return; } var fat=usedCodes[inv.code]; info.textContent="この発明での成功率："+chanceOf(inv,m,fat,levelFor(store.exp).level)+"%"+(inv.cat===m.c?"（相性 +15）":"")+(fat?"（疲労 −10）":""); }
+        sel.addEventListener("change",upd);
+        var tuneWrap=document.createElement("label");
+        tuneWrap.style.cssText="display:none;gap:8px;align-items:center;margin-top:8px;color:var(--sub);font-size:.88rem";
+        var tuneCb=document.createElement("input"); tuneCb.type="checkbox";
+        tuneWrap.appendChild(tuneCb); tuneWrap.appendChild(document.createTextNode("徹夜チューニングを使う（1日1回：疲労無効＆成功率+10）"));
+        function tuneVis(){ tuneWrap.style.display= (!store.tune[tKey] && usedCodes[sel.value])? "flex":"none"; }
+        sel.addEventListener("change",tuneVis);
+        var go=document.createElement("button"); go.className="go"; go.type="button"; go.textContent="この発明で挑戦する";
+        go.addEventListener("click",function(){
+          var inv=inventionFromCode(sel.value); if(!inv) return;
+          var useTune= tuneCb.checked && !store.tune[tKey] && usedCodes[inv.code];
+          if(useTune) store.tune[tKey]=true;
+          var chance=chanceOf(inv,m,useTune?false:usedCodes[inv.code],levelFor(store.exp).level,useTune), roll=rollFor(tKey,k,inv.code), ok=roll<chance;
+          var exp= ok? 20+m.s*10 : 5, coins= ok? 5+m.s*5 : 2, ticket= ok?1:0;
+          store.exp+=exp; store.coins+=coins; store.tickets+=ticket;
+          day.results[k]={code:inv.code,invName:inv.name,success:ok,chance:chance,roll:roll,exp:exp,coins:coins,ticket:ticket,verdict:verdictFor(ok,chance,roll),log:logText(ok,tKey,k,m.t,inv.name)};
+          if(!store.allClear[tKey] && day.quests.every(function(_,kk){ return day.results[kk]&&day.results[kk].success; })){
+            store.allClear[tKey]=true; store.exp+=30; store.tickets+=1;
+            day.bonus=true;
+          }
+          save(); renderAll();
+        });
+        div.appendChild(sel); div.appendChild(info); div.appendChild(tuneWrap); div.appendChild(go); upd(); tuneVis();
+      }
+      box.appendChild(div);
+    });
+  }
+  function renderBoss(){
+    var boss=bossFor(wKey), invs=usableInventions(), top3=topPowerSum(invs,3);
+    var topInvs=invs.slice().sort(function(a,b){return b.power-a.power;}).slice(0,3);
+    var distinct=topInvs.length===3 && new Set(topInvs.map(function(v){return v.f;})).size===3;
+    var rec=store.boss[wKey];
+    var box=$("bossBox"); box.innerHTML="";
+    var t=document.createElement("div"); t.className=""; t.style.fontWeight="800"; t.textContent=boss.n;
+    var d=document.createElement("div"); d.style.color="var(--sub)"; d.style.marginTop="4px"; d.textContent=boss.d;
+    var meta=document.createElement("div"); meta.className="meta"; meta.style.color="var(--acc)";
+    meta.textContent="あなたの上位3発明の合計パワー："+top3+"（挑戦条件 120以上）／ 成功率 "+(top3>=120? bossChance(top3,distinct):"—")+"%"+(distinct?"（編成ボーナス：機能が全て異なる +10）":"");
+    box.appendChild(t); box.appendChild(d); box.appendChild(meta);
+    if(rec){
+      var r=document.createElement("div"); r.style.marginTop="8px";
+      r.innerHTML= rec.success? "<span class='ok'>🎉 討伐成功！</span> 報酬 EXP +150、コイン +100" : "<span class='ng'>討伐失敗…</span> 報酬 EXP +20。また来週。";
+      box.appendChild(r);
+    }else{
+      var go=document.createElement("button"); go.className="go"; go.type="button";
+      go.style.cssText="width:100%;margin-top:10px;padding:12px;border:none;border-radius:10px;background:var(--bad);color:#fff;font-weight:800;cursor:pointer";
+      go.textContent= top3>=120? "ボスに挑戦する（週1回）" : "パワー不足（あと "+(120-top3)+")";
+      go.disabled= top3<120;
+      go.addEventListener("click",function(){
+        var codes=invs.slice().sort(function(a,b){return b.power-a.power;}).slice(0,3).map(function(v){return v.code;}).join(",");
+        var roll=rollFor(wKey,"boss",codes), ok=roll<bossChance(top3,distinct);
+        store.boss[wKey]={success:ok,date:tKey,roll:roll};
+        if(ok){ store.exp+=150; store.coins+=100; } else store.exp+=20;
+        save(); renderAll();
+      });
+      box.appendChild(go);
+    }
+  }
+  function renderLog(){
+    var box=$("log"); box.innerHTML="";
+    if(day.tutorialLog){ var tp=document.createElement("p"); tp.textContent=day.tutorialLog; box.appendChild(tp); }
+    var entries=day.quests.map(function(qi,k){ return day.results[k]; }).filter(Boolean);
+    if(day.bonus){ var b=document.createElement("p"); b.innerHTML="<span class='ok'>🎉 全クエスト達成ボーナス！</span> EXP +30、チケット +1"; box.appendChild(b); }
+    if(!entries.length&&!day.bonus&&!day.tutorialLog){ box.innerHTML="<p style='color:var(--sub)'>まだ冒険していない。クエストに挑むと、ここに顛末が残ります。</p>"; return; }
+    entries.forEach(function(r){ var p=document.createElement("p"); p.textContent=r.log; box.appendChild(p); });
+  }
+  function renderAll(){ renderStats(); renderInv(); renderQuests(); renderBoss(); renderLog(); }
+  $("spinBtn").addEventListener("click",function(){
+    if(store.tickets<=0) return;
+    store.tickets--;
+    var inv=makeInvention(Math.floor(Math.random()*ITEMS.length),Math.floor(Math.random()*FUNCS.length),Math.floor(Math.random()*BUTS.length));
+    store.found[inv.code]=1;
+    var tag= inv.power>=55? "🔥 神発明！" : inv.power<=13? "💩 クソ発明（褒め言葉）" : "";
+    if(store.inv.includes(inv.code)){
+      store.coins+=10;
+      $("newInv").innerHTML="出たのは <b>"+inv.name+"</b>…すでに持っていたので素材化して <b>10コイン</b> に変換。図鑑には登録済み。";
+    }else{
+      store.inv.push(inv.code);
+      $("newInv").innerHTML=(tag? tag+" ":"✨ 新しい発明：")+"<b>"+inv.name+"</b>（<span class='r"+inv.rarity+"'>★"+inv.rarity+"</span> パワー "+inv.power+" ／ 相性 "+inv.cat+" ／ "+inv.code+"）<br><span style='color:var(--sub)'>"+ITEMS[inv.i].n+"が"+FUNCS[inv.f].v+"。"+BUTS[inv.b]+"。</span>";
+    }
+    if(navigator.vibrate) navigator.vibrate(inv.rarity==="UR"?[50,40,120]:25);
+    save(); renderAll();
+  });
+  $("codeBtn").addEventListener("click",function(){
+    var inv=inventionFromCode($("codeIn").value);
+    if(!inv){ $("codeMsg").textContent="そのコードは読み取れませんでした。"; return; }
+    if(store.inv.includes(inv.code)){ $("codeMsg").textContent="その発明はすでに持っています。"; return; }
+    store.borrowed={code:inv.code,date:tKey}; store.found[inv.code]=1;
+    $("codeMsg").textContent=""; $("newInv").innerHTML="🤝 <b>"+inv.name+"</b>（パワー "+inv.power+"）を今日だけ借りました！";
+    save(); renderAll();
+  });
+  $("lendBtn").addEventListener("click",function(){
+    var invs=usableInventions(); if(!invs.length) return;
+    var best=invs.slice().sort(function(a,b){return b.power-a.power;})[0];
+    var text=lendText(best);
+    if(navigator.clipboard) navigator.clipboard.writeText(text).then(function(){ $("codeMsg").textContent="貸出文をコピーしました："+best.name; });
+    else $("codeMsg").textContent=text;
+  });
+  $("shareBtn").addEventListener("click",function(){
+    var playedKeys2=Object.keys(store.days).filter(function(k){ return Object.keys(store.days[k].results||{}).length>0; });
+    var text=buildShare(tKey,day,store.exp,levelFor(store.exp).level,streakFrom(playedKeys2,tKey));
+    if(navigator.share) navigator.share({text:text}).catch(function(){});
+    else if(navigator.clipboard) navigator.clipboard.writeText(text).then(function(){ $("newInv").textContent="シェア文をコピーしました。"; });
+  });
+  $("cardBtn").addEventListener("click",function(){
+    var cv=$("cv"), ctx=cv.getContext("2d"), lv=levelFor(store.exp);
+    ctx.fillStyle="#1f1b31"; ctx.fillRect(0,0,1200,630);
+    ctx.fillStyle="#ffd23f"; ctx.fillRect(0,0,1200,14);
+    ctx.fillStyle="#f1edff"; ctx.font="700 42px sans-serif"; ctx.fillText("まいにち冒険ギルド",56,92);
+    ctx.font="30px sans-serif"; ctx.fillStyle="#a79fc4"; ctx.fillText(tKey+" ／ Lv."+lv.level+" "+titleFor(lv.level)+" ／ 累計 "+store.exp+" EXP",56,140);
+    ctx.font="34px sans-serif";
+    day.quests.forEach(function(qi,k){
+      var r=day.results[k];
+      ctx.fillStyle= r? (r.success?"#7be382":"#ff7a93") : "#a79fc4";
+      ctx.fillText((r?(r.success?"✅ ":"❌ "):"・ ")+MISSIONS[qi].t,56,220+k*64);
+      if(r){ ctx.fillStyle="#f1edff"; ctx.font="26px sans-serif"; ctx.fillText("使用発明："+r.invName+"（成功率 "+r.chance+"%）評語："+(r.verdict||""),56,252+k*64); ctx.font="34px sans-serif"; }
+    });
+    ctx.fillStyle="#ffd23f"; ctx.font="700 36px sans-serif";
+    ctx.fillText("図鑑 "+Object.keys(store.found).length+" / "+TOTAL+" 件",56,560);
+    var a=document.createElement("a"); a.download="guild-"+tKey+".png"; a.href=cv.toDataURL("image/png"); a.click();
+  });
+  save(); renderAll();
+})();
+}
+</script>
+</body>
+</html>
