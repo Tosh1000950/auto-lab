@@ -51,6 +51,8 @@ class EvoSim{
     this.creatures=[]; this.foods=[];
     this.stats={births:0,deaths:0,bigMutations:0,eaten:0,predation:0,peakPop:0};
     this.tracker=new SpeciesTracker(this.rng);
+    this.zones=[]; for(let i=0;i<12;i++) this.zones.push(0.6); /* 4x3 grid moisture */
+    this.sanctuary=null; this.seeds=[];
     for(let i=0;i<70;i++) this.spawnCreature(randomGenes(this.rng));
     for(let i=0;i<260;i++) this.spawnFood();
   }
@@ -59,8 +61,41 @@ class EvoSim{
     this.creatures.push({genes, d, x:x??this.rng()*WORLD.w, y:y??this.rng()*WORLD.h,
       energy:energy??d.capacity*0.55, age:0, gen:0, dir:this.rng()*Math.PI*2});
   }
+  zoneAt(x,y){ const ix=Math.min(3,Math.max(0,(x/(WORLD.w/4))|0)), iy=Math.min(2,Math.max(0,(y/(WORLD.h/3))|0)); return iy*4+ix; }
   spawnFood(){
+    for(let t=0;t<3;t++){ const x=this.rng()*WORLD.w, y=this.rng()*WORLD.h;
+      if(this.rng()<this.zones[this.zoneAt(x,y)]+0.25){ this.foods.push({x,y,e:9+this.rng()*7}); return; } }
     this.foods.push({x:this.rng()*WORLD.w, y:this.rng()*WORLD.h, e:9+this.rng()*7});
+  }
+  setZoneAt(x,y,delta){ const i=this.zoneAt(x,y); this.zones[i]=Math.min(1,Math.max(0.05,this.zones[i]+delta)); return this.zones[i]; }
+  setSanctuary(x,y){ this.sanctuary={x,y,r:110}; this.tracker.log(this.tick,'tool','保護区が設置された'); }
+  triggerEvent(kind,x,y){
+    if(kind==='bloom'){ for(let i=0;i<150;i++) this.spawnFood(); this.tracker.log(this.tick,'event','🌸 豊作！ 餌が大量に増えた'); }
+    if(kind==='plague'){
+      let target=null; for(const sp of this.tracker.species){ if(!sp.extinct&&(!target||sp.count>target.count)) target=sp; }
+      if(target){ let killed=0; this.creatures=this.creatures.filter(c=>{ if(c.speciesId===target.id&&this.rng()<0.35){killed++;return false;} return true; });
+        this.tracker.log(this.tick,'event','☠ 疫病が「'+target.name+'」を襲った（'+killed+'匹死亡）'); }
+    }
+    if(kind==='meteor'){
+      const mx=x??this.rng()*WORLD.w, my=y??this.rng()*WORLD.h; let killed=0;
+      this.creatures=this.creatures.filter(c=>{ const dx=c.x-mx,dy=c.y-my; if(dx*dx+dy*dy<250*250&&this.rng()<0.75){killed++;return false;} return true; });
+      this.foods=this.foods.filter(f=>{ const dx=f.x-mx,dy=f.y-my; return dx*dx+dy*dy>=250*250; });
+      this.tracker.log(this.tick,'event','☄ 隕石が落下（'+killed+'匹死亡）');
+    }
+  }
+  saveSeed(speciesId){
+    const sp=this.tracker.species.find(v=>v.id===speciesId); if(!sp) return false;
+    if(this.seeds.length>=5) this.seeds.shift();
+    this.seeds.push({name:sp.name, genes:{...(sp.meanGenes||sp.founderGenes)}});
+    this.tracker.log(this.tick,'tool','休眠シードに「'+sp.name+'」の遺伝子を保存');
+    return true;
+  }
+  sowSeed(i){
+    const sd=this.seeds[i]; if(!sd) return false;
+    const x=this.rng()*WORLD.w, y=this.rng()*WORLD.h;
+    for(let k=0;k<8;k++){ const g=mutateGenes(sd.genes,this.rng,this.stats); this.spawnCreature(g,x+(this.rng()*60-30),y+(this.rng()*60-30)); }
+    this.tracker.log(this.tick,'tool','休眠シードから「'+sd.name+'」の末裔が芽吹いた');
+    return true;
   }
   step(){
     const rng=this.rng, pop=this.creatures.length;
@@ -105,7 +140,8 @@ class EvoSim{
         }
       } else {
         const dx=prey.x-c.x, dy=prey.y-c.y;
-        if(dx*dx+dy*dy<144 && rng()>prey.genes.spikes*0.55){
+        const inSanc=this.sanctuary && ((prey.x-this.sanctuary.x)**2+(prey.y-this.sanctuary.y)**2 < this.sanctuary.r*this.sanctuary.r);
+        if(dx*dx+dy*dy<144 && !inSanc && rng()>prey.genes.spikes*0.55){
           c.energy=Math.min(c.d.capacity,c.energy+prey.energy*0.6+14);
           eatenCreatures.add(prey); this.stats.predation++;
         }
@@ -115,7 +151,10 @@ class EvoSim{
       const sp=c.d.moveSpeed;
       c.x=Math.min(WORLD.w,Math.max(0,c.x+Math.cos(c.dir)*sp));
       c.y=Math.min(WORLD.h,Math.max(0,c.y+Math.sin(c.dir)*sp));
-      c.energy-=c.d.upkeep*upkeepMul*0.16 + sp*0.012;
+      const moist=this.zones[this.zoneAt(c.x,c.y)];
+      const dryCost=1+(0.6-moist)*Math.max(0,c.genes.size-0.6)*0.9;
+      const sancMul=(this.sanctuary && ((c.x-this.sanctuary.x)**2+(c.y-this.sanctuary.y)**2 < this.sanctuary.r*this.sanctuary.r))?0.8:1;
+      c.energy-=c.d.upkeep*upkeepMul*dryCost*sancMul*0.16 + sp*0.012;
       if(c.energy>c.d.capacity*0.92 && pop+newborns.length<HARD_CAP && rng()<0.25){
         const childGenes=mutateGenes(c.genes,rng,this.stats);
         const child={genes:childGenes, d:derived(childGenes), x:c.x+(rng()*20-10), y:c.y+(rng()*20-10),
