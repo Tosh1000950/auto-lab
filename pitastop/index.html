@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ピタスト！ | 日替わり目標ストップウォッチ</title>
+<meta name="description" content="今日の目標秒数にピタッと止めろ。目標2秒前から表示が消えるブラインド・ストップウォッチゲーム。1日3回、全員同じ目標。">
+<meta property="og:title" content="ピタスト！">
+<meta property="og:description" content="今日の目標にピタッと止められるか？ 誤差○msを競うデイリーゲーム">
+<meta property="og:type" content="website">
+<style>
+  :root{--bg:#10131c;--card:#1a1f2e;--ink:#f2f4fa;--sub:#9aa4bd;--acc:#ffd23f;--acc2:#3fd6ff;--bad:#ff5d7a;--good:#4be38a}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:16px}
+  main{width:100%;max-width:480px;display:flex;flex-direction:column;gap:14px}
+  header{text-align:center;padding-top:8px}
+  h1{font-size:2rem;letter-spacing:.04em}
+  h1 .a{color:var(--acc)}
+  .tag{color:var(--sub);font-size:.85rem;margin-top:4px}
+  .card{background:var(--card);border-radius:16px;padding:18px;box-shadow:0 4px 20px rgba(0,0,0,.35)}
+  .tabs{display:flex;gap:8px}
+  .tabs button{flex:1;padding:10px;border-radius:10px;border:1px solid #2c344a;background:#141927;color:var(--sub);font-size:.95rem;cursor:pointer}
+  .tabs button.on{background:var(--acc);color:#141414;border-color:var(--acc);font-weight:700}
+  .target{text-align:center}
+  .target .lbl{color:var(--sub);font-size:.85rem}
+  .target .val{font-size:1.6rem;font-weight:800;color:var(--acc2)}
+  .target .val small{font-size:.9rem;color:var(--sub);font-weight:400}
+  #clock{font-variant-numeric:tabular-nums;text-align:center;font-size:4.2rem;font-weight:800;line-height:1.15;min-height:1.15em}
+  #clock.blind{color:var(--sub)}
+  .hint{text-align:center;color:var(--sub);font-size:.85rem;min-height:1.3em}
+  #bigbtn{width:100%;padding:20px;font-size:1.4rem;font-weight:800;border:none;border-radius:16px;background:var(--acc);color:#141414;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  #bigbtn.stop{background:var(--bad);color:#fff}
+  #bigbtn:disabled{opacity:.45;cursor:default}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row button{flex:1;padding:11px;border-radius:10px;border:1px solid #2c344a;background:#141927;color:var(--ink);cursor:pointer;font-size:.95rem}
+  select{background:#141927;color:var(--ink);border:1px solid #2c344a;border-radius:8px;padding:8px;font-size:1rem}
+  #result{text-align:center;display:none}
+  #result .diff{font-size:2rem;font-weight:800}
+  #result .rank{font-size:1.3rem;color:var(--acc);font-weight:800;margin-top:2px}
+  #result .msg{color:var(--sub);margin-top:6px;font-size:.95rem}
+  .history{display:flex;justify-content:center;gap:8px;margin-top:10px}
+  .history span{background:#141927;border:1px solid #2c344a;border-radius:999px;padding:4px 12px;font-size:.85rem;font-variant-numeric:tabular-nums}
+  .stats{display:flex;justify-content:space-around;text-align:center}
+  .stats b{display:block;font-size:1.25rem}
+  .stats span{color:var(--sub);font-size:.78rem}
+  footer{color:var(--sub);font-size:.78rem;text-align:center;line-height:1.7;padding-bottom:12px}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>ピタ<span class="a">スト！</span></h1>
+    <p class="tag">今日の目標にピタッと止めろ。最後の2秒は表示が消える。</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button id="tabDaily" class="on" type="button">今日のチャレンジ（3回）</button>
+    <button id="tabFree" type="button">フリー練習</button>
+  </div>
+
+  <section class="card">
+    <div class="target">
+      <div class="lbl" id="dateLbl">今日の目標</div>
+      <div class="val"><span id="targetVal">10.00</span> <small>秒</small></div>
+      <div id="freePick" style="display:none;margin-top:8px">
+        <label>目標を選ぶ <select id="targetSel"></select></label>
+      </div>
+    </div>
+    <div id="clock">0.00</div>
+    <p class="hint" id="hint">スタートを押して、目標ピッタリでストップ！</p>
+    <button id="bigbtn" type="button">スタート</button>
+    <div id="result" aria-live="polite">
+      <div class="diff" id="resDiff"></div>
+      <div class="rank" id="resRank"></div>
+      <p class="msg" id="resMsg"></p>
+      <div class="history" id="history"></div>
+    </div>
+  </section>
+
+  <div class="row">
+    <button id="shareBtn" type="button" disabled>結果をシェア / コピー</button>
+    <button id="resetBtn" type="button">今日の記録をリセット</button>
+  </div>
+
+  <section class="card stats">
+    <div><b id="stBest">—</b><span>今日のベスト誤差</span></div>
+    <div><b id="stStreak">0</b><span>連続プレイ日数</span></div>
+    <div><b id="stAllBest">—</b><span>自己ベスト誤差</span></div>
+  </section>
+
+  <footer>
+    遊び方：スタート→目標の2秒前から数字が消える→自分のカウントでピタッと止める。<br>
+    スペースキーでもスタート／ストップできます。記録はこの端末にだけ保存されます。
+  </footer>
+  <p class="sr" aria-live="polite" id="live"></p>
+</main>
+
+<script>
+"use strict";
+/* ===== 純ロジック（Nodeでもテスト可能） ===== */
+var TARGETS = [5.00, 6.66, 7.77, 8.88, 9.99, 10.00, 11.11, 12.34];
+function dateKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function getDailyTarget(key){
+  var h=0; for(var i=0;i<key.length;i++){ h=(h*31 + key.charCodeAt(i))>>>0; }
+  return TARGETS[h % TARGETS.length];
+}
+function rankFor(diffMs){
+  if(diffMs===0) return {rank:"神ピタ SSS", msg:"誤差ゼロ。人間卒業レベル。"};
+  if(diffMs<=50) return {rank:"SSS", msg:"ほぼ完璧。体内時計が精密機械。"};
+  if(diffMs<=100) return {rank:"SS", msg:"すごい。あと少しで神の領域。"};
+  if(diffMs<=200) return {rank:"S", msg:"かなり正確。センスある。"};
+  if(diffMs<=350) return {rank:"A", msg:"いい線。もう一回で化けるかも。"};
+  if(diffMs<=500) return {rank:"B", msg:"惜しい。カウントのリズムを一定に。"};
+  if(diffMs<=1000) return {rank:"C", msg:"1秒以内。まずはここが登竜門。"};
+  return {rank:"D", msg:"まだまだ。心の中でテンポを刻もう。"};
+}
+function closenessEmoji(diffMs){
+  if(diffMs<=50) return "🟨";
+  if(diffMs<=200) return "🟩";
+  if(diffMs<=500) return "🟦";
+  return "⬛";
+}
+function buildShareText(dateStr, targetSec, tries){
+  var best=Math.min.apply(null, tries);
+  var r=rankFor(best);
+  var em=tries.map(closenessEmoji).join("");
+  return "ピタスト！ "+dateStr+"\n目標 "+targetSec.toFixed(2)+"秒 / ベスト誤差 "+best+"ms（"+r.rank+"）\n"+em+" "+tries.length+"回チャレンジ\n#ピタスト";
+}
+function fmt(sec){ return sec.toFixed(2); }
+if (typeof module!=="undefined" && module.exports){ module.exports={TARGETS:TARGETS,dateKey:dateKey,getDailyTarget:getDailyTarget,rankFor:rankFor,closenessEmoji:closenessEmoji,buildShareText:buildShareText}; }
+
+/* ===== 画面まわり ===== */
+if (typeof document!=="undefined"){
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var today=dateKey(new Date());
+  var LS="pitastop_v1";
+  var store={};
+  try{ store=JSON.parse(localStorage.getItem(LS)||"{}"); }catch(e){ store={}; }
+  if(!store.days) store.days={};
+  if(!store.days[today]) store.days[today]=[];
+  /* ストリーク計算 */
+  function calcStreak(){
+    var n=0, d=new Date();
+    if(store.days[dateKey(d)] && store.days[dateKey(d)].length) { /* 今日分は数える */ }
+    else d.setDate(d.getDate()-1);
+    while(true){ var k=dateKey(d); if(store.days[k] && store.days[k].length){ n++; d.setDate(d.getDate()-1); } else break; }
+    return n;
+  }
+  var mode="daily";
+  var target=getDailyTarget(today);
+  var running=false, startAt=0, raf=0;
+  var clock=$("clock"), btn=$("bigbtn"), hint=$("hint");
+
+  var sel=$("targetSel");
+  TARGETS.forEach(function(t){ var o=document.createElement("option"); o.value=t; o.textContent=fmt(t)+" 秒"; sel.appendChild(o); });
+  sel.value="10";
+
+  function save(){ try{ localStorage.setItem(LS, JSON.stringify(store)); }catch(e){} }
+  function tries(){ return mode==="daily" ? store.days[today] : freeTries; }
+  var freeTries=[];
+  function refresh(){
+    $("targetVal").textContent=fmt(target);
+    $("dateLbl").textContent = mode==="daily" ? ("今日の目標（"+today+"）") : "フリー練習の目標";
+    $("freePick").style.display = mode==="free" ? "block":"none";
+    var dt=store.days[today];
+    $("stBest").textContent = dt.length ? Math.min.apply(null,dt)+"ms" : "—";
+    var all=[]; Object.keys(store.days).forEach(function(k){ all=all.concat(store.days[k]); });
+    $("stAllBest").textContent = all.length ? Math.min.apply(null,all)+"ms" : "—";
+    $("stStreak").textContent = calcStreak();
+    var t=tries();
+    $("shareBtn").disabled = !(mode==="daily" ? dt.length : freeTries.length);
+    var hist=$("history"); hist.innerHTML="";
+    t.forEach(function(ms){ var s=document.createElement("span"); s.textContent=ms+"ms "+closenessEmoji(ms); hist.appendChild(s); });
+    if(mode==="daily" && dt.length>=3 && !running){ btn.disabled=true; btn.textContent="今日は終了！また明日"; hint.textContent="3回使い切ったよ。結果をシェアしよう。"; }
+    else if(!running){ btn.disabled=false; btn.textContent="スタート"; }
+  }
+  function setMode(m){
+    if(running) stopTimer(true);
+    mode=m;
+    $("tabDaily").classList.toggle("on", m==="daily");
+    $("tabFree").classList.toggle("on", m==="free");
+    target = m==="daily" ? getDailyTarget(today) : parseFloat(sel.value);
+    $("result").style.display="none"; clock.textContent="0.00"; clock.classList.remove("blind");
+    hint.textContent = m==="daily" ? "スタートを押して、目標ピッタリでストップ！" : "フリー練習は何回でもOK。";
+    refresh();
+  }
+  $("tabDaily").addEventListener("click", function(){ setMode("daily"); });
+  $("tabFree").addEventListener("click", function(){ setMode("free"); });
+  sel.addEventListener("change", function(){ if(mode==="free"){ target=parseFloat(sel.value); refresh(); } });
+
+  function tick(){
+    var el=(performance.now()-startAt)/1000;
+    if(el >= target-2){ clock.textContent="??.??"; clock.classList.add("blind"); }
+    else clock.textContent=fmt(el);
+    raf=requestAnimationFrame(tick);
+  }
+  function startTimer(){
+    running=true; startAt=performance.now();
+    btn.textContent="ストップ！"; btn.classList.add("stop");
+    $("result").style.display="none"; clock.classList.remove("blind"); clock.textContent="0.00";
+    hint.textContent="目標の2秒前から表示が消えるよ…";
+    raf=requestAnimationFrame(tick);
+  }
+  function stopTimer(cancel){
+    cancelAnimationFrame(raf); running=false;
+    btn.classList.remove("stop");
+    if(cancel){ refresh(); return; }
+    var el=(performance.now()-startAt)/1000;
+    clock.textContent=fmt(el); clock.classList.remove("blind");
+    var diff=Math.round(Math.abs(el-target)*1000);
+    var r=rankFor(diff);
+    tries().push(diff); save();
+    $("resDiff").textContent=(el<target?"−":"＋")+diff+" ms";
+    $("resDiff").style.color = diff<=200 ? "var(--good)" : (diff<=500 ? "var(--ink)" : "var(--bad)");
+    $("resRank").textContent="ランク "+r.rank;
+    $("resMsg").textContent=r.msg + (mode==="daily" ? "（残り "+(3-store.days[today].length)+" 回）" : "");
+    $("result").style.display="block";
+    $("live").textContent="結果 誤差"+diff+"ミリ秒 ランク"+r.rank;
+    if(navigator.vibrate) navigator.vibrate(diff===0?[60,40,120]:30);
+    hint.textContent="もう一度やるならスタート。";
+    refresh();
+    if(!(mode==="daily" && store.days[today].length>=3)) btn.textContent="もう一度";
+  }
+  btn.addEventListener("click", function(){ running ? stopTimer(false) : startTimer(); });
+  document.addEventListener("keydown", function(e){
+    if(e.code==="Space" && !/BUTTON|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); if(!btn.disabled) running ? stopTimer(false) : startTimer(); }
+  });
+  $("shareBtn").addEventListener("click", function(){
+    var text=buildShareText(today, getDailyTarget(today), mode==="daily"&&store.days[today].length?store.days[today]:freeTries);
+    if(navigator.share){ navigator.share({text:text}).catch(function(){}); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(text).then(function(){ hint.textContent="シェア文をコピーしたよ。Xなどに貼ってね。"; }); }
+  });
+  $("resetBtn").addEventListener("click", function(){
+    store.days[today]=[]; save(); $("result").style.display="none"; clock.textContent="0.00"; refresh();
+    hint.textContent="今日の記録をリセットしたよ。";
+  });
+  refresh();
+})();
+}
+</script>
+</body>
+</html>
