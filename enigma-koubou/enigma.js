@@ -142,4 +142,83 @@ function dailyConfig(dateStr) {
   };
 }
 
-if (typeof module !== 'undefined') module.exports = { Enigma, ROTORS, REFLECTORS, encodeConfig, decodeConfig, dailyConfig, plugsToString };
+
+/* ===== Stage 4：crib探索（解読ワークベンチ） =====
+   既知平文（crib）が暗号文のどこかにあると仮定し、ローター順と開始位置を総当たりする。
+   前提：リング・反射器・プラグ盤は現在の設定のものを使う（未知のプラグがあると一致しない）。
+   高速化：自己非暗号化ルールで配置を事前に除外し、配線は生配列で直接計算する。 */
+function permutations(arr) {
+  if (arr.length <= 1) return [arr];
+  const out = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = arr.slice(0, i).concat(arr.slice(i + 1));
+    for (const p of permutations(rest)) out.push([arr[i]].concat(p));
+  }
+  return out;
+}
+function cribSearch(ciphertext, crib, base, opts = {}) {
+  const cipher = String(ciphertext).toUpperCase().replace(/[^A-Z]/g, '');
+  const cribT = String(crib).toUpperCase().replace(/[^A-Z]/g, '');
+  if (!cipher || !cribT || cribT.length > cipher.length) return { hits: [], tested: 0, skipped: 0, error: 'input' };
+  const orders = opts.allOrders ? permutations(['I', 'II', 'III', 'IV', 'V']).filter(p => true).flatMap(p => [p]) : [base.rotors];
+  const orderList = opts.allOrders ? allRotorOrders() : [base.rotors];
+  const reflector = REFLECTORS[base.reflector || 'B'].split('').map(A2I);
+  const plugMap = new Enigma({ rotors: base.rotors, reflector: base.reflector, plugs: base.plugs || '' }).plugMap;
+  const rings = base.rings || [0, 0, 0];
+  const hits = [];
+  let tested = 0, skipped = 0;
+  for (const order of orderList) {
+    const rots = order.map(name => {
+      const fwd = ROTORS[name].wiring.split('').map(A2I);
+      const rev = new Array(26); fwd.forEach((v, i) => { rev[v] = i; });
+      return { fwd, rev, notch: A2I(ROTORS[name].notch) };
+    });
+    for (let offset = 0; offset + cribT.length <= cipher.length; offset++) {
+      let impossible = false;
+      for (let j = 0; j < cribT.length; j++) if (cipher[offset + j] === cribT[j]) { impossible = true; break; }
+      if (impossible) { skipped++; continue; }
+      for (let s0 = 0; s0 < 26; s0++) for (let s1 = 0; s1 < 26; s1++) for (let s2 = 0; s2 < 26; s2++) {
+        tested++;
+        const pos = [s0, s1, s2];
+        let ok = true;
+        for (let j = 0; j < cribT.length; j++) {
+          /* ステップ（ダブルステッピング含む） */
+          const mAt = pos[1] === rots[1].notch, rAt = pos[2] === rots[2].notch;
+          if (mAt) { pos[1] = (pos[1] + 1) % 26; pos[0] = (pos[0] + 1) % 26; }
+          if (rAt) { pos[1] = (pos[1] + 1) % 26; }
+          pos[2] = (pos[2] + 1) % 26;
+          let c = A2I(cipher[offset + j]);
+          c = plugMap[c];
+          for (let i = 2; i >= 0; i--) { const sh = pos[i] - rings[i]; c = ((rots[i].fwd[((c + sh) % 26 + 26) % 26] - sh) % 26 + 26) % 26; }
+          c = reflector[c];
+          for (let i = 0; i <= 2; i++) { const sh = pos[i] - rings[i]; c = ((rots[i].rev[((c + sh) % 26 + 26) % 26] - sh) % 26 + 26) % 26; }
+          c = plugMap[c];
+          if (I2A(c) !== cribT[j]) { ok = false; break; }
+        }
+        if (ok) {
+          /* 開始位置は「暗号文の先頭」基準に直す：offset分進んだ位置から逆算できないため、
+             ヒットした開始位置は crib 開始時点のもの。先頭位置は別途、offset文字進めた先として記録する */
+          hits.push({ rotors: order.slice(), startAtCrib: [s0, s1, s2], offset });
+          if (hits.length >= 20) return { hits, tested, skipped };
+        }
+      }
+    }
+  }
+  return { hits, tested, skipped };
+}
+function allRotorOrders() {
+  const names = ['I', 'II', 'III', 'IV', 'V'], out = [];
+  for (const a of names) for (const b of names) for (const c of names) if (a !== b && b !== c && a !== c) out.push([a, b, c]);
+  return out;
+}
+
+/* crib開始時点の位置から、文頭の開始位置を復元する（offset回ステップして一致する開始位置を探す） */
+function recoverStart(cfg, startAtCrib, offset) {
+  for (let a = 0; a < 26; a++) for (let b = 0; b < 26; b++) for (let c = 0; c < 26; c++) {
+    const m = new Enigma({ rotors: cfg.rotors, reflector: cfg.reflector, rings: cfg.rings, positions: [a, b, c], plugs: cfg.plugs || '' });
+    for (let i = 0; i < offset; i++) m.encipherLetter('A');
+    if (m.positions[0] === startAtCrib[0] && m.positions[1] === startAtCrib[1] && m.positions[2] === startAtCrib[2]) return [a, b, c];
+  }
+  return null;
+}
+if (typeof module !== 'undefined') module.exports = { Enigma, ROTORS, REFLECTORS, encodeConfig, decodeConfig, dailyConfig, plugsToString, cribSearch, allRotorOrders, recoverStart };
