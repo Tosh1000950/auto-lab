@@ -50,6 +50,7 @@ class EvoSim{
     this.rng=mulberry32(seed); this.tick=0;
     this.creatures=[]; this.foods=[];
     this.stats={births:0,deaths:0,bigMutations:0,eaten:0,predation:0,peakPop:0};
+    this.tracker=new SpeciesTracker(this.rng);
     for(let i=0;i<70;i++) this.spawnCreature(randomGenes(this.rng));
     for(let i=0;i<260;i++) this.spawnFood();
   }
@@ -129,6 +130,7 @@ class EvoSim{
     this.stats.deaths+=before-this.creatures.length;
     for(const n of newborns) this.creatures.push(n);
     this.stats.peakPop=Math.max(this.stats.peakPop,this.creatures.length);
+    if(this.tick%60===0) this.tracker.update(this);
   }
   geneMeans(){
     const n=this.creatures.length||1, m={};
@@ -139,4 +141,84 @@ class EvoSim{
     return m;
   }
 }
-if(typeof module!=='undefined') module.exports={EvoSim,mulberry32,randomGenes,mutateGenes,derived};
+
+/* ===== Stage 3：種の追跡（自動命名・系統・絶滅・祖先比較） ===== */
+function morphVec(g){
+  const hueD=Math.min(g.hue,360-g.hue)/180;
+  return [g.legs/6, g.legLen/2.2, g.head/2, g.tail/3, g.spikes, g.size/2.2, hueD, g.appetite];
+}
+function vecDist(a,b){ let s=0; for(let i=0;i<a.length;i++){ const d=a[i]-b[i]; s+=d*d; } return Math.sqrt(s); }
+const NAME_A=['ア','カ','サ','タ','ナ','ハ','マ','ヤ','ラ','ワ','ギ','ジ','ヅ','ビ','ピ','ル','レ','ロ','モ','ケ','セ','テ','ネ','ヘ','メ'];
+const NAME_B=['','ン','ク','ス','ト','プ','ム','ユ','ラ','キ','ゴ','ザ','ド','バ','ポ'];
+function speciesName(g,rng){
+  let pre='';
+  if(g.spikes>=0.5) pre='トゲ';
+  else if(g.legs>=3.5) pre='ムカデ';
+  else if(g.size>=1.5) pre='オオ';
+  else if(g.appetite>=0.6) pre='ガブリ';
+  else if(g.tail>=2) pre='フサ';
+  else if(g.speed>=1.9) pre='ハヤ';
+  let core=''; const n=2+Math.floor(rng()*2);
+  for(let i=0;i<n;i++) core+=NAME_A[Math.floor(rng()*NAME_A.length)]+(i===0&&rng()<0.5?NAME_B[Math.floor(rng()*NAME_B.length)]:'');
+  const stem=g.head===1?'ドン':(g.head===2?'マル':'ポン');
+  return (pre?pre+'・':'')+core+stem;
+}
+function causalTags(before,after){
+  const tags=[];
+  const d=(k)=>after[k]-before[k];
+  if(d('legs')>=0.8||d('legLen')>=0.25||d('speed')>=0.35) tags.push('速く動くための変化');
+  if(d('spikes')>=0.3) tags.push('捕食者への対抗');
+  if(d('size')>=0.25) tags.push('大型化');
+  if(d('appetite')>=0.2) tags.push('肉食への傾斜');
+  if(d('sense')>=15) tags.push('索餌範囲の拡大');
+  if(d('metab')<=-0.25) tags.push('省エネ化');
+  if(Math.abs(d('hue'))>=60) tags.push('体色の変化');
+  return tags.length?tags:['目立った変化なし（漸進的な適応）'];
+}
+class SpeciesTracker{
+  constructor(rng){ this.rng=rng; this.species=[]; this.nextId=1; this.events=[]; }
+  log(tick,type,text){ this.events.push({tick,type,text}); if(this.events.length>60) this.events.shift(); }
+  update(sim){
+    const groups=new Map();
+    for(const c of sim.creatures){ if(c.speciesId==null) c.speciesId=0; }
+    /* 既存種への割当て：重心に近い個体を集める */
+    const alive=new Set();
+    for(const sp of this.species){ if(!sp.extinct) alive.add(sp.id); }
+    const buckets=new Map();
+    for(const c of sim.creatures){
+      let best=null,bd=1e9;
+      for(const sp of this.species){ if(sp.extinct) continue; const d=vecDist(morphVec(c.genes),sp.centroid); if(d<bd){bd=d;best=sp;} }
+      if(best&&bd<0.52){ c.speciesId=best.id; }
+      if(!buckets.get(c.speciesId)) buckets.set(c.speciesId,[]);
+      buckets.get(c.speciesId).push(c);
+    }
+    /* 未割当て（speciesId=0）や既存種から遠い集団を新種として分岐させる */
+    const zeros=buckets.get(0)||[];
+    if(zeros.length>=6){
+      const cent=zeros[0].genes; let parent=null,pd=1e9;
+      for(const sp of this.species){ if(sp.extinct) continue; const d=vecDist(morphVec(cent),sp.centroid); if(d<pd){pd=d;parent=sp;} }
+      const genesMean={}; const keys=['size','speed','sense','metab','hue','legs','legLen','head','tail','spikes','appetite'];
+      for(const k of keys) genesMean[k]=zeros.reduce((a,c)=>a+c.genes[k],0)/zeros.length;
+      const sp={id:this.nextId++, name:speciesName(genesMean,this.rng), centroid:morphVec(genesMean),
+        founderGenes:{...genesMean}, bornTick:sim.tick, parentId:parent?parent.id:null, extinct:false, extinctTick:null, peak:zeros.length};
+      this.species.push(sp);
+      for(const c of zeros) c.speciesId=sp.id;
+      this.log(sim.tick,'species','新種「'+sp.name+'」が分岐'+(parent?'（'+parent.name+' から）':''));
+    }
+    /* 重心と個体数の更新、絶滅判定 */
+    for(const sp of this.species){
+      const members=sim.creatures.filter(c=>c.speciesId===sp.id);
+      if(members.length>0){
+        sp.extinct=false; sp.count=members.length; sp.peak=Math.max(sp.peak||0,members.length);
+        const keys=['size','speed','sense','metab','hue','legs','legLen','head','tail','spikes','appetite'];
+        const mean={}; for(const k of keys) mean[k]=members.reduce((a,c)=>a+c.genes[k],0)/members.length;
+        sp.meanGenes=mean; sp.centroid=morphVec(mean);
+      } else if(!sp.extinct && sp.id!==0){
+        sp.extinct=true; sp.extinctTick=sim.tick; sp.count=0;
+        this.log(sim.tick,'extinct','「'+sp.name+'」が絶滅（最盛期 '+sp.peak+' 匹）');
+      }
+    }
+  }
+}
+
+if(typeof module!=='undefined') module.exports={EvoSim,mulberry32,randomGenes,mutateGenes,derived,SpeciesTracker,speciesName,causalTags};
