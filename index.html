@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auto Lab | Muse 自動制作テスト置き場</title>
+<meta name="description" content="Muse が自動制作テストで作った Web ゲーム・ツール集。作る過程のログも全部公開しています。">
+<style>
+:root{--bg:#10131c;--card:#1a1f2e;--ink:#f2f4fa;--sub:#9aa4bd;--acc:#ffd23f;--line:#2c344a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:20px 16px}
+main{width:100%;max-width:760px}
+header{text-align:center;padding:12px 0 20px}
+h1{font-size:2rem} h1 .a{color:var(--acc)}
+.tag{color:var(--sub);margin-top:6px;line-height:1.7;font-size:.92rem}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:640px){.grid{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:8px}
+.card h2{font-size:1.25rem}
+.card p{color:var(--sub);line-height:1.7;font-size:.92rem;flex:1}
+.badge{align-self:flex-start;background:#243b2a;color:#7be382;border-radius:999px;padding:2px 10px;font-size:.75rem;font-weight:700}
+.badge.flag{background:#3d3413;color:var(--acc)}
+.card a.play{background:var(--acc);color:#141414;text-decoration:none;text-align:center;font-weight:800;padding:12px;border-radius:10px}
+.card a.log{color:var(--sub);text-align:center;font-size:.85rem}
+footer{color:var(--sub);font-size:.8rem;text-align:center;line-height:1.8;padding:22px 0 8px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Auto <span class="a">Lab</span></h1>
+    <p class="tag">Muse の自動制作テストで生まれた Web ゲーム・ツール置き場。<br>「自動でどこまで作れるか」の実験場で、各作品の制作ログも全部置いてあります。</p>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <span class="badge flag">旗艦作</span>
+      <h2>⚔️ まいにち冒険ギルド</h2>
+      <p>毎朝の日常クエストを、発明スロットで作った発明品で攻略するギルド運営ゲーム。週替わりボス、評語システム、発明コードの貸し借りつき。習作3本の仕組みを統合し、他AIの批評とバランス検証を何周も回した本命。</p>
+      <a class="play" href="./daily-guild/">遊ぶ</a>
+      <a class="log" href="./daily-guild/PROGRESS.md">制作ログを読む</a>
+    </section>
+
+    <section class="card">
+      <span class="badge">検証済み</span>
+      <h2>🎰 発明スロット研究所</h2>
+      <p>モノ×機能×ただし書きの3リールで架空の発明品が量産される玩具。全6,400通り、図鑑と発明コード交換、日替わりお題、商品カード画像つき。</p>
+      <a class="play" href="./hatsumei-slot/">遊ぶ</a>
+      <a class="log" href="./hatsumei-slot/PROGRESS.md">制作ログを読む</a>
+    </section>
+
+    <section class="card">
+      <span class="badge">検証済み</span>
+      <h2>⏱️ ピタスト！</h2>
+      <p>日替わり目標秒数にストップウォッチをピタッと止めるゲーム。目標2秒前から表示が消えるブラインド方式。1日3回、全員同じ目標。</p>
+      <a class="play" href="./pitastop/">遊ぶ</a>
+      <a class="log" href="./pitastop/PROGRESS.md">制作ログを読む</a>
+    </section>
+
+    <section class="card">
+      <span class="badge">検証済み</span>
+      <h2>🗺️ 日替わりクエスト手帳</h2>
+      <p>毎朝3つの小さな冒険クエストが届く生活ゲーム化ツール。全48種、EXPとレベル・称号、連続日数、引き直しつき。その日は誰が開いても同じ3つ。</p>
+      <a class="play" href="./daily-quest/">遊ぶ</a>
+      <a class="log" href="./daily-quest/PROGRESS.md">制作ログを読む</a>
+    </section>
+  </div>
+
+  <footer>
+    全作品：単一HTML・外部依存ゼロ・記録はブラウザ内保存。<br>
+    テスト全体の経過は <a href="./LAB_LOG.md" style="color:var(--acc)">LAB_LOG.md</a> にあります。
+  </footer>
+</main>
+</body>
+</html>
