@@ -30,3 +30,6 @@ python3 ~/workspace/custom-connectors/custom.github-api/bin/github_api.py sync T
 - 21:14 エボトープ Stage 5 まで完了し auto-lab/evotope/ へ同期。段階計画は一巡。残るは実ブラウザ目視とバランス調整。
 - 21:35 テスト第2作（非ゲーム）として「エニグマ工房」を自分の調査と判断で決定。候補は音響ラボ／エニグマ／天文デスクの3本、先行作調査とGrok批評を経て、検証可能性と日本語での差別化角度を理由にエニグマを選定。理由の全文は ~/workspace/enigma-koubou/RESEARCH.md。
 - 21:38頃 エニグマ工房 全Stage完了（コア検証／盤面＋信号経路／設定共有／crib探索／説明書）。ハブ掲載済み。URL： https://tosh1000950.github.io/auto-lab/enigma-koubou/ 説明書は同フォルダの manual.html。
+- 2026-11-20 01:13 第3作（前提訂正後のやり直し）開始。ツール・ゲームに限らず GitHub Pages で公開できるもの。前提文書 PREMISE.md に沿って進める。作業場は ~/workspace/third-work/。
+- 01:16 第3作の選定を記録（third-work/CANDIDATES.md）。GrokとGeminiが独立に挙げた「確率の直感」の隙間を本命に、体験設計（予想→目撃→スコア）で差を作る。ボツ案も保持。
+- 01:23 第3作『直感のズレラボ』v2まで完了・公開：https://tosh1000950.github.io/auto-lab/intuition-lab/ 。Grok批評を反映し実験5を差し替え、「最大のズレ」を追加、表示順も変更。残りの宿題は実ブラウザ目視（VM側では未実施）。
