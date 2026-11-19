@@ -56,18 +56,18 @@ a{color:var(--acc)}
 <p class="lead">確率の直感は、思っているより外れます。<br>まず「あなたの予想」を置いてから、大量シミュレーションで現実を目撃してください。<br>全5問で、あなたの「直感のズレ」が測れます。</p>
 <p class="progress" id="progress">実験 0 / 5 完了</p>
 
-<section class="exp" id="exp1">
-<h2><span class="no">実験1</span> 検査で「陽性」が出たら</h2>
-<p class="story">1000人に1人しかかからない病気があります。検査はかなり優秀で、<b>病気の人を99%当て</b>、<b>健康な人を95%正しく「陰性」</b>と判定します（裏を返すと、健康な人の5%は間違って「陽性」になります）。<br>あなたがこの検査で「陽性」でした。本当に病気の確率は、何%くらいだと思いますか？</p>
+<section class="exp" id="exp4">
+<h2><span class="no">実験1</span> 1%のガチャを100回引いたら</h2>
+<p class="story">当選率<b>1%</b>のガチャを<b>100回</b>引きます。1回以上当たる確率は、何%だと思いますか？</p>
 <p class="q">あなたの予想は？</p>
-<input type="range" id="p1" min="0" max="100" value="90">
-<div class="predval"><span id="p1v">90</span>%</div>
-<button class="btn" id="b1">答え合わせ（10万人で見てみる）</button>
-<div class="reveal" id="r1">
-<p class="truth">本当に病気の確率は <span class="num">約1.9%</span> でした</p>
-<p class="diff" id="d1"></p>
-<canvas class="viz" id="c1" width="760" height="300"></canvas>
-<p class="why">10万人で数えると：病気の人は100人いて、99人が陽性（本物）。健康な人は99,900人いて、その5%＝4,995人も間違って陽性（偽物）。陽性の合計5,094人のうち本物は99人だけ＝約1.9%。検査の精度に目が行き、「病気自体がとても珍しい」ことを忘れるのが直感の落とし穴です（これを基準率の無視といいます）。医師を対象にした調査でも、正しく答えられる人は少数だったという有名な話があります。</p>
+<input type="range" id="p4" min="0" max="100" value="95">
+<div class="predval"><span id="p4v">95</span>%</div>
+<button class="btn" id="b4">答え合わせ（10,000人分シミュレーション）</button>
+<div class="reveal" id="r4">
+<p class="truth">当たる確率は <span class="num">約63%</span> でした</p>
+<p class="diff" id="d4"></p>
+<p class="why" id="gachaSim"></p>
+<p class="why">「1%×100回＝100%」ではありません。各回は独立で、外し続ける確率が 0.99 の100乗＝約37% も残ります。逆に言うと、100回引いても約3人に1人は1つも当たりません。期待値（当たるまでの平均回数）は100回ですが、「平均」と「確実」は別物です。</p>
 </div>
 </section>
 
@@ -104,33 +104,33 @@ a{color:var(--acc)}
 </div>
 </section>
 
-<section class="exp" id="exp4">
-<h2><span class="no">実験4</span> 1%のガチャを100回引いたら</h2>
-<p class="story">当選率<b>1%</b>のガチャを<b>100回</b>引きます。1回以上当たる確率は、何%だと思いますか？</p>
+<section class="exp" id="exp1">
+<h2><span class="no">実験4</span> 検査で「陽性」が出たら</h2>
+<p class="story">1000人に1人しかかからない病気があります。検査はかなり優秀で、<b>病気の人を99%当て</b>、<b>健康な人を95%正しく「陰性」</b>と判定します（裏を返すと、健康な人の5%は間違って「陽性」になります）。<br>あなたがこの検査で「陽性」でした。本当に病気の確率は、何%くらいだと思いますか？</p>
 <p class="q">あなたの予想は？</p>
-<input type="range" id="p4" min="0" max="100" value="95">
-<div class="predval"><span id="p4v">95</span>%</div>
-<button class="btn" id="b4">答え合わせ（10,000人分シミュレーション）</button>
-<div class="reveal" id="r4">
-<p class="truth">当たる確率は <span class="num">約63%</span> でした</p>
-<p class="diff" id="d4"></p>
-<p class="why" id="gachaSim"></p>
-<p class="why">「1%×100回＝100%」ではありません。各回は独立で、外し続ける確率が 0.99 の100乗＝約37% も残ります。逆に言うと、100回引いても約3人に1人は1つも当たりません。期待値（当たるまでの平均回数）は100回ですが、「平均」と「確実」は別物です。</p>
+<input type="range" id="p1" min="0" max="100" value="90">
+<div class="predval"><span id="p1v">90</span>%</div>
+<button class="btn" id="b1">答え合わせ（10万人で見てみる）</button>
+<div class="reveal" id="r1">
+<p class="truth">本当に病気の確率は <span class="num">約1.9%</span> でした</p>
+<p class="diff" id="d1"></p>
+<canvas class="viz" id="c1" width="760" height="300"></canvas>
+<p class="why">10万人で数えると：病気の人は100人いて、99人が陽性（本物）。健康な人は99,900人いて、その5%＝4,995人も間違って陽性（偽物）。陽性の合計5,094人のうち本物は99人だけ＝約1.9%。検査の精度に目が行き、「病気自体がとても珍しい」ことを忘れるのが直感の落とし穴です（これを基準率の無視といいます）。医師を対象にした調査でも、正しく答えられる人は少数だったという有名な話があります。</p>
 </div>
 </section>
 
 <section class="exp" id="exp5">
-<h2><span class="no">実験5</span> コイン10回で「ちょうど5回」表</h2>
-<p class="story">コインを10回投げます。表が<b>ちょうど5回</b>出る確率は、何%だと思いますか？</p>
+<h2><span class="no">実験5</span> 2人の子供のパラドックス</h2>
+<p class="story">ある家に子供が2人います。<b>少なくとも1人は男の子</b>だと分かっています。では、<b>2人とも男の子</b>の確率は、何%でしょう？（男女は半々で生まれるものとします）</p>
 <p class="q">あなたの予想は？</p>
 <input type="range" id="p5" min="0" max="100" value="50">
 <div class="predval"><span id="p5v">50</span>%</div>
-<button class="btn" id="b5">答え合わせ（10,000セット投げてみる）</button>
+<button class="btn" id="b5">答え合わせ（10万家族をシミュレーション）</button>
 <div class="reveal" id="r5">
-<p class="truth">ちょうど5回は <span class="num">約25%</span> でした</p>
+<p class="truth">2人とも男の子は <span class="num">約33%</span> でした</p>
 <p class="diff" id="d5"></p>
-<canvas class="viz" id="c5" width="760" height="300"></canvas>
-<p class="why">「半分ちょうど」が一番起きやすいのは確かですが、それでも4回に1回程度。残りは4回・6回・3回…に散ります。さらに、表が3回以下か7回以上という「かなり偏った」結果も約34%の確率で起きます。10回程度の試行では、偏りは“異常”ではなく“通常”なのです。</p>
+<p class="why" id="boySim"></p>
+<p class="why">2人の組み合わせは「男男・男女・女男・女女」の4通りで、どれも同じ確率です。「少なくとも1人は男」という情報で「女女」が消え、残りは3通り。そのうち「男男」は1通りだけなので 1/3 です。「もう1人はコイン投げと同じで半々」という直感は、情報が"どちらか1人"を指していないことを見落としています。</p>
 </div>
 </section>
 
@@ -277,46 +277,21 @@ $('b4').addEventListener('click',()=>{
   const pred=+$('p4').value, truth=63.4;
   finish('exp4',pred,truth,Math.abs(pred-truth),'あなたの予想 '+pred+'% → ズレ '+(Math.abs(pred-truth)).toFixed(0)+' ポイント');
 });
-/* 実験5：コインのヒストグラム */
+/* 実験5：2人の子供パラドックス */
 $('b5').addEventListener('click',()=>{
   $('b5').disabled=true; $('r5').classList.add('show');
-  const counts=new Array(11).fill(0); const SETS=10000;
-  for(let s=0;s<SETS;s++){ let h=0; for(let i=0;i<10;i++) if(Math.random()<0.5) h++; counts[h]++; }
-  const cv=$('c5'), ctx=cv.getContext('2d'); const W=cv.width,H=cv.height, pad=44;
-  const max=Math.max.apply(null,counts);
-  counts.forEach((c,i)=>{ const bw=(W-pad-20)/11;
-    const x=pad+i*bw+3, hgt=(c/max)*(H-pad-30), y=H-pad-hgt;
-    ctx.fillStyle=i===5?'#ffb347':'#4a5470';
-    ctx.fillRect(x,y,bw-6,hgt);
-    ctx.fillStyle='#f2efe6'; ctx.font='13px sans-serif'; ctx.fillText(i+'回',x+6,H-pad+18);
-    ctx.font='12px sans-serif'; ctx.fillText((c/SETS*100).toFixed(1)+'%',x+2,y-6);
-  });
-  ctx.fillStyle='#a8a294'; ctx.font='12px sans-serif'; ctx.fillText('表の回数（10,000セットの実測）',pad+6,20);
-  const pred=+$('p5').value, truth=24.6;
+  let both=0, total=0; const FAM=100000;
+  for(let i=0;i<FAM;i++){
+    const a=Math.random()<0.5, b=Math.random()<0.5;
+    if(a||b){ total++; if(a&&b) both++; }
+  }
+  const rate=both/total*100;
+  $('boySim').textContent='シミュレーション結果：「少なくとも1人は男の子」の家庭が '+total.toLocaleString()+' 軒あり、そのうち2人とも男の子は '+both.toLocaleString()+' 軒（'+rate.toFixed(1)+'%）。理論値33.3%とほぼ一致します。';
+  const pred=+$('p5').value, truth=33.3;
   finish('exp5',pred,truth,Math.abs(pred-truth),'あなたの予想 '+pred+'% → ズレ '+(Math.abs(pred-truth)).toFixed(0)+' ポイント');
 });
-
-/* おまけ：嘘グラフ */
-function drawLie(){
-  const start=+$('axisStart').value; $('axisStartV').textContent=start;
-  const cv=$('c6'), ctx=cv.getContext('2d'); const W=cv.width,H=cv.height, base=H-46, top=26;
-  ctx.clearRect(0,0,W,H);
-  const max=60;
-  function bar(x,val,color,label){
-    const hgt=(val-start)/(max-start)*(base-top);
-    ctx.fillStyle=color; ctx.fillRect(x,base-hgt,150,hgt);
-    ctx.fillStyle='#f2efe6'; ctx.font='bold 24px sans-serif'; ctx.fillText(val+'点',x+38,base-hgt-10);
-    ctx.font='18px sans-serif'; ctx.fillText(label,x+52,base+28);
-  }
-  ctx.strokeStyle='#333949'; ctx.beginPath(); ctx.moveTo(40,base); ctx.lineTo(W-20,base); ctx.stroke();
-  ctx.fillStyle='#a8a294'; ctx.font='14px sans-serif'; ctx.fillText('縦軸は '+start+'点 から',44,top);
-  bar(150,52,'#4a5470','A社'); bar(430,58,'#ffb347','B社');
-  const visual=((58-start)/(52-start)).toFixed(2);
-  $('lieMsg').textContent='見た目の比率：B社はA社の約 '+visual+' 倍に見えます（実際の比率は約1.12倍）。';
-}
-$('axisStart').addEventListener('input',drawLie); drawLie();
 /* 最終スコアとカード */
-const NAMES={exp1:'検査の陽性',exp2:'モンティ・ホール',exp3:'誕生日の一致',exp4:'1%ガチャ×100回',exp5:'コイン10回'};
+const NAMES={exp1:'検査の陽性',exp2:'モンティ・ホール',exp3:'誕生日の一致',exp4:'1%ガチャ×100回',exp5:'2人の子供'};
 function rankOf(score){
   if(score<=10) return '🏆 確率と友達レベル';
   if(score<=20) return '✨ なかなか正確な直感';
@@ -330,11 +305,14 @@ function showFinal(){
   $('final').style.display='block';
   $('scoreNum').textContent='ズレ平均 '+finalScore.toFixed(1)+' ポイント';
   $('scoreRank').textContent=rankOf(finalScore);
-  $('scoreDetail').innerHTML=keys.map(k=>{
+  const maxKey=keys.reduce((a,b)=>results[a].diff>=results[b].diff?a:b);
+  const mr=results[maxKey];
+  $('scoreDetail').innerHTML='<span style="color:#ff7b72;font-weight:800">最大のズレ：'+NAMES[maxKey]+'（予想 '+(maxKey==='exp3'?mr.pred+'人':mr.pred+'%')+' → 真実 '+(maxKey==='exp3'?'23人':mr.truth+'%')+'、ズレ '+mr.diff.toFixed(0)+'ポイント）</span><br>'+keys.map(k=>{
     const r=results[k];
     return NAMES[k]+'：予想 '+(k==='exp3'?r.pred+'人':r.pred+'%')+' → 真実 '+(k==='exp3'?'23人':r.truth+'%')+'（ズレ '+r.diff.toFixed(0)+'）';
   }).join('<br>');
-  const txt='【直感のズレラボ】私の直感スコアは「ズレ平均 '+finalScore.toFixed(1)+'ポイント」でした。\n'+keys.map(k=>{ const r=results[k]; return '・'+NAMES[k]+'：予想'+(k==='exp3'?r.pred+'人':r.pred+'%')+'→真実'+(k==='exp3'?'23人':r.truth+'%'); }).join('\n')+'\nあなたの直感は何点？';
+  const maxKey2=keys.reduce((a,b)=>results[a].diff>=results[b].diff?a:b);
+  const txt='【直感のズレラボ】私の直感スコアは「ズレ平均 '+finalScore.toFixed(1)+'ポイント」でした。最大のズレは「'+NAMES[maxKey2]+'」で '+results[maxKey2].diff.toFixed(0)+'ポイント外しました。\n'+keys.map(k=>{ const r=results[k]; return '・'+NAMES[k]+'：予想'+(k==='exp3'?r.pred+'人':r.pred+'%')+'→真実'+(k==='exp3'?'23人':r.truth+'%'); }).join('\n')+'\nあなたの直感は何点？';
   $('shareTxt').value=txt;
   drawCard();
   $('final').scrollIntoView({behavior:'smooth'});
@@ -362,6 +340,9 @@ function drawCard(){
   ctx.fillText('ズレ平均 '+finalScore.toFixed(1)+' ポイント',52,y+26);
   ctx.fillStyle='#f2efe6'; ctx.font='30px sans-serif';
   ctx.fillText(rankOf(finalScore),600,y+26);
+  const mk=Object.keys(results).reduce((a,b)=>results[a].diff>=results[b].diff?a:b);
+  ctx.fillStyle='#ff7b72'; ctx.font='bold 32px sans-serif';
+  ctx.fillText('最大のズレ：'+NAMES[mk]+'（ズレ '+results[mk].diff.toFixed(0)+'）',52,y+78);
 }
 $('btnCard').addEventListener('click',()=>{
   const a=document.createElement('a'); a.download='chokkan-zure-result.png';
