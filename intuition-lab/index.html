@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>直感のズレラボ | 確率の直感はどれだけ外れる？</title>
 <meta name="description" content="検査の陽性、モンティ・ホール、誕生日、ガチャ、コイン。あなたの確率の直感がどれだけ外れるか、大量シミュレーションで目撃する体験ラボ。">
+<meta property="og:title" content="直感のズレラボ | 確率の直感はどれだけ外れる？">
+<meta property="og:description" content="全5実験であなたの直感のズレを測定。検査で陽性でも本当に病気なのは約2%？ まず予想してから、大量シミュレーションで目撃しよう。">
+<meta property="og:type" content="website">
 <style>
 :root{--bg:#10131a;--panel:#1b1f2a;--ink:#f2efe6;--sub:#a8a294;--acc:#ffb347;--good:#7bd88f;--bad:#ff7b72;--line:#333949}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -129,6 +132,18 @@ a{color:var(--acc)}
 <canvas class="viz" id="c5" width="760" height="300"></canvas>
 <p class="why">「半分ちょうど」が一番起きやすいのは確かですが、それでも4回に1回程度。残りは4回・6回・3回…に散ります。さらに、表が3回以下か7回以上という「かなり偏った」結果も約34%の確率で起きます。10回程度の試行では、偏りは“異常”ではなく“通常”なのです。</p>
 </div>
+</section>
+
+
+<section class="exp" id="exp6">
+<h2><span class="no">おまけ実験</span> 嘘グラフ（スコア対象外）</h2>
+<p class="story">A社の満足度は <b>52点</b>、B社は <b>58点</b>。差はわずか6点です。でも、グラフの<b>縦軸の始点</b>を変えるだけで、印象はこう変わります。下のスライダーを動かしてみてください。</p>
+<p class="q">縦軸の始点</p>
+<input type="range" id="axisStart" min="0" max="50" value="0">
+<div class="predval"><span id="axisStartV">0</span>点から</div>
+<canvas class="viz" id="c6" width="760" height="320"></canvas>
+<p class="why" id="lieMsg"></p>
+<p class="why">実際の差は 58÷52＝約1.12倍。でも軸を50点から始めると、見た目の棒の長さは 2÷8＝4倍もの差に見えます。ニュースや広告のグラフで「すごい差」に見えたら、まず縦軸の始点を確認するのが、だまされない第一歩です。</p>
 </section>
 
 <section class="final" id="final" style="display:none">
@@ -280,6 +295,26 @@ $('b5').addEventListener('click',()=>{
   const pred=+$('p5').value, truth=24.6;
   finish('exp5',pred,truth,Math.abs(pred-truth),'あなたの予想 '+pred+'% → ズレ '+(Math.abs(pred-truth)).toFixed(0)+' ポイント');
 });
+
+/* おまけ：嘘グラフ */
+function drawLie(){
+  const start=+$('axisStart').value; $('axisStartV').textContent=start;
+  const cv=$('c6'), ctx=cv.getContext('2d'); const W=cv.width,H=cv.height, base=H-46, top=26;
+  ctx.clearRect(0,0,W,H);
+  const max=60;
+  function bar(x,val,color,label){
+    const hgt=(val-start)/(max-start)*(base-top);
+    ctx.fillStyle=color; ctx.fillRect(x,base-hgt,150,hgt);
+    ctx.fillStyle='#f2efe6'; ctx.font='bold 24px sans-serif'; ctx.fillText(val+'点',x+38,base-hgt-10);
+    ctx.font='18px sans-serif'; ctx.fillText(label,x+52,base+28);
+  }
+  ctx.strokeStyle='#333949'; ctx.beginPath(); ctx.moveTo(40,base); ctx.lineTo(W-20,base); ctx.stroke();
+  ctx.fillStyle='#a8a294'; ctx.font='14px sans-serif'; ctx.fillText('縦軸は '+start+'点 から',44,top);
+  bar(150,52,'#4a5470','A社'); bar(430,58,'#ffb347','B社');
+  const visual=((58-start)/(52-start)).toFixed(2);
+  $('lieMsg').textContent='見た目の比率：B社はA社の約 '+visual+' 倍に見えます（実際の比率は約1.12倍）。';
+}
+$('axisStart').addEventListener('input',drawLie); drawLie();
 /* 最終スコアとカード */
 const NAMES={exp1:'検査の陽性',exp2:'モンティ・ホール',exp3:'誕生日の一致',exp4:'1%ガチャ×100回',exp5:'コイン10回'};
 function rankOf(score){
