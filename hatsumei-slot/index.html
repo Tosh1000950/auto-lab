@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>発明スロット研究所 | 架空の発明品が量産される場所</title>
+<meta name="description" content="モノ×機能×ただし書きの3リールで架空の発明品を量産。図鑑6,400通り、発明コードで友達と交換、日替わりお題つき。">
+<meta property="og:title" content="発明スロット研究所">
+<meta property="og:description" content="回すたびに架空の発明品が完成。キミの発明をコードで交換しよう">
+<meta property="og:type" content="website">
+<style>
+:root{--bg:#17130d;--card:#241d13;--ink:#f7efdd;--sub:#b8a888;--acc:#ffb02e;--acc2:#ff7847;--line:#3d3220}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:16px}
+main{width:100%;max-width:520px;display:flex;flex-direction:column;gap:14px}
+header{text-align:center;padding-top:6px}
+h1{font-size:1.8rem}
+h1.a{color:var(--acc)}
+.tag{color:var(--sub);font-size:.85rem;margin-top:4px}
+.card{background:var(--card);border-radius:16px;padding:18px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.reels{display:flex;gap:8px}
+.reel{flex:1;background:#171208;border:2px solid var(--line);border-radius:12px;padding:12px 6px;text-align:center;min-height:96px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.reel.emo{font-size:1.9rem}
+.reel.lab{font-weight:700;font-size:.98rem;line-height:1.3}
+.reel.cap{color:var(--sub);font-size:.7rem}
+#spinBtn{width:100%;padding:18px;font-size:1.3rem;font-weight:800;border:none;border-radius:14px;background:linear-gradient(180deg,var(--acc),var(--acc2));color:#221503;cursor:pointer;touch-action:manipulation}
+#spinBtn:disabled{opacity:.5}
+#product{display:none}
+#product.rare{font-weight:800;letter-spacing:.08em}
+.rare-N{color:#cfc4a8}.rare-R{color:#6fd3ff}.rare-SR{color:#c792ff}.rare-UR{color:#ffd23f}
+#pName{font-size:1.55rem;font-weight:800;line-height:1.35;margin:6px 0}
+#pDesc{line-height:1.7}
+#pBut{color:#ff9d8a;line-height:1.7}
+#pComment{color:var(--sub);line-height:1.7;margin-top:8px;font-size:.92rem}
+.spec{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.spec span{background:#171208;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:.83rem}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row button,.row input{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:#171208;color:var(--ink);font-size:.93rem}
+.row button{cursor:pointer}
+.bar{height:10px;background:#171208;border-radius:99px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--acc);width:0%}
+#recent{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+#recent button{text-align:left;background:#171208;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;font-size:.9rem}
+.daily{border:1px dashed var(--acc);border-radius:12px;padding:10px 12px;text-align:center;color:var(--acc);font-weight:700}
+footer{color:var(--sub);font-size:.78rem;text-align:center;line-height:1.7;padding-bottom:12px}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>発明スロット<span class="a">研究所</span></h1>
+<p class="tag">回すたび、架空の発明品がひとつ完成する。全6,400通り。</p>
+</header>
+
+<div class="daily" id="dailyBox">今日のお題：読み込み中…</div>
+
+<section class="card">
+<div class="reels">
+<div class="reel"><div class="emo" id="rEmo0">🎲</div><div class="lab" id="rLab0">モノ</div><div class="cap">モノ</div></div>
+<div class="reel"><div class="emo" id="rEmo1">✨</div><div class="lab" id="rLab1">機能</div><div class="cap">機能</div></div>
+<div class="reel"><div class="emo" id="rEmo2">⚠️</div><div class="lab" id="rLab2">ただし…</div><div class="cap">ただし書き</div></div>
+</div>
+<div style="height:12px"></div>
+<button id="spinBtn" type="button">🎰 発明する！</button>
+<label style="display:flex;gap:8px;align-items:center;margin-top:12px;color:var(--sub);font-size:.9rem">
+<input type="checkbox" id="dailyMode"> 今日のお題で発明する（モノ固定）
+</label>
+</section>
+
+<section class="card" id="product">
+<div class="rare" id="pRare"></div>
+<div id="pName"></div>
+<p id="pDesc"></p>
+<p id="pBut"></p>
+<p id="pComment"></p>
+<div class="spec" id="pSpec"></div>
+<div style="height:12px"></div>
+<div class="row">
+<button id="shareBtn" type="button">シェア / コピー</button>
+<button id="cardBtn" type="button">商品カード画像を作る</button>
+</div>
+</section>
+
+<section class="card">
+<b>発明コードで再現</b>
+<p style="color:var(--sub);font-size:.88rem;margin:6px 0 10px">友達の発明コードを入れると、その発明がここに再現されます。</p>
+<div class="row">
+<input id="codeIn" type="text" placeholder="INV-XXXX" autocomplete="off" style="text-transform:uppercase">
+<button id="codeBtn" type="button">再現する</button>
+</div>
+<p id="codeMsg" style="color:#ff9d8a;font-size:.85rem;margin-top:8px;min-height:1.2em"></p>
+</section>
+
+<section class="card">
+<b>発明図鑑</b> <span style="color:var(--sub);font-size:.88rem" id="zukanCount"></span>
+<div class="bar"><i id="zukanBar"></i></div>
+<div id="recent"></div>
+</section>
+
+<footer>発明品はすべて架空です。たぶん買えません。記録はこの端末にだけ保存されます。</footer>
+</main>
+<canvas id="cv" width="1200" height="630" style="display:none"></canvas>
+
+<script>
+"use strict";
+/* ===== データ ===== */
+var ITEMS=[
+{n:"傘",e:"☂️"},{n:"帽子",e:"🧢"},{n:"靴下",e:"🧦"},{n:"布団",e:"🛏️"},{n:"冷蔵庫",e:"🧊"},
+{n:"自転車",e:"🚲"},{n:"メガネ",e:"👓"},{n:"財布",e:"👛"},{n:"ノート",e:"📓"},{n:"コップ",e:"🥛"},
+{n:"鍵",e:"🔑"},{n:"椅子",e:"🪑"},{n:"時計",e:"⏰"},{n:"歯ブラシ",e:"🪥"},{n:"カーテン",e:"🪟"},
+{n:"玄関マット",e:"🚪"},{n:"水筒",e:"🍶"},{n:"ハンガー",e:"👕"},{n:"枕",e:"💤"},{n:"スリッパ",e:"🩴"}];
+var FUNCS=[
+{n:"ホメホメ",v:"使う人をとにかく褒めてくれる"},{n:"オートオープン",v:"ちょうどいい瞬間に自動で開く"},
+{n:"おしゃべり",v:"退屈そうにしていると話しかけてくる"},{n:"ほかほか",v:"いつでもほんのり温かい"},
+{n:"ひんやり",v:"いつでもひんやり冷たい"},{n:"追尾",v:"持ち主の後ろをそっとついてくる"},
+{n:"応援団",v:"大事な場面で全力で応援してくれる"},{n:"謝罪",v:"何かあると先に謝ってくれる"},
+{n:"子守唄",v:"眠くなると子守唄を歌ってくれる"},{n:"いい香り",v:"近づくといい香りがする"},
+{n:"ふわり浮遊",v:"少しだけ浮く"},{n:"のびのび",v:"必要な長さまで伸びる"},
+{n:"全記録",v:"起きたことを全部記録してくれる"},{n:"通訳",v:"動物の気持ちを通訳してくれる"},
+{n:"励まし",v:"落ち込んでいると励ましてくれる"},{n:"数え屋",v:"周りのものを正確に数えてくれる"},
+{n:"見張り番",v:"留守の間しっかり見張ってくれる"},{n:"かくれんぼ",v:"探されると上手に隠れる"},
+{n:"お運び",v:"小さな荷物を運んでくれる"},{n:"ゆらゆら",v:"心地よく揺れてくれる"}];
+var BUTS=[
+"ただし電池は1日しか持たない","ただし雨の日だけ本気を出す","ただし持ち主を少し尊敬してくる",
+"ただし夜中に小声で歌うことがある","ただし使いすぎると照れて止まる","ただし猫にだけ大人気",
+"ただし説明書が辞典くらい分厚い","ただし充電中は完全に寝ている","ただし気分で性能が変わる",
+"ただし声が思ったより大きい","ただし時々休みたがる","ただし褒められると急に強くなる",
+"ただし月曜日はやる気がない","ただし持ち主の真似をし始める","ただし年に一度だけ進化する",
+"ただし名前を付けると懐いてくる"];
+var SUFFIX=["DX","改","Pro","零号機","タイプR","mini","EX","・改良型"];
+var COMMENTS=[
+"所長コメント：「なぜ作ったのかは聞かないでください。動いたので商品化しました」",
+"所長コメント：「会議では全員が首を傾げましたが、試作品は全員を笑わせました」",
+"所長コメント：「実用性は保証しません。愛着は保証します」",
+"所長コメント：「これが欲しいと言った人が3人いたので量産を決めました」",
+"所長コメント：「テスト中にスタッフが名前を付けた時点で、もう負けです（懐きました）」",
+"所長コメント：「特許は出願中ということにしておいてください」"];
+/* ===== 純ロジック ===== */
+var TOTAL=ITEMS.length*FUNCS.length*BUTS.length;
+function hashN(n){ var x=(n*2654435761)>>>0; x^=x>>>15; return (x*2246822519)>>>0;}
+function rarityOf(n){ var r=hashN(n)%1000; if(r<30)return"UR"; if(r<150)return"SR"; if(r<500)return"R"; return"N";}
+function priceOf(n){ return (Math.floor(hashN(n^0x9e37)%880)+12)*100-20;}
+function modelOf(n){ return "INV-"+String(1000+(hashN(n^0x51ab)%9000));}
+function nameOf(i,f,n){ return FUNCS[f].n+ITEMS[i].n+" "+SUFFIX[hashN(n)%SUFFIX.length];}
+function commentOf(n){ return COMMENTS[hashN(n^0xabcd)%COMMENTS.length];}
+function encodeCode(i,f,b){
+var n=(i*FUNCS.length+f)*BUTS.length+b;
+var body=n.toString(36).toUpperCase().padStart(3,"0");
+var chk=((n*7+13)%36).toString(36).toUpperCase();
+return "INV-"+body+chk;
+}
+function decodeCode(code){
+if(!code) return null;
+var s=String(code).trim().toUpperCase().replace(/^INV-/,"").replace(/[\s-]/g,"");
+if(s.length!==4) return null;
+var body=s.slice(0,3), chk=s[3];
+var n=parseInt(body,36);
+if(isNaN(n)||n>=TOTAL) return null;
+if(((n*7+13)%36).toString(36).toUpperCase()!==chk) return null;
+var b=n%BUTS.length, f=Math.floor(n/BUTS.length)%FUNCS.length, i=Math.floor(n/(BUTS.length*FUNCS.length));
+return {i:i,f:f,b:b};
+}
+function dateKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function dailyItemIndex(key){ var h=0; for(var i=0;i<key.length;i++) h=(h*31+key.charCodeAt(i))>>>0; return h%ITEMS.length;}
+function shareTextOf(inv){
+return ""+inv.name+"\n"+ITEMS[inv.i].n+"が"+FUNCS[inv.f].v+"。"+BUTS[inv.b]+"。\n価格 "+inv.price.toLocaleString()+"円 / "+inv.rarity+" / 発明コード "+inv.code+"\n#発明スロット研究所";
+}
+function makeInvention(i,f,b){
+var n=(i*FUNCS.length+f)*BUTS.length+b;
+return {i:i,f:f,b:b,name:nameOf(i,f,n),rarity:rarityOf(n),price:priceOf(n),model:modelOf(n),code:encodeCode(i,f,b),comment:commentOf(n)};
+}
+if(typeof module!=="undefined"&&module.exports){ module.exports={ITEMS:ITEMS,FUNCS:FUNCS,BUTS:BUTS,TOTAL:TOTAL,encodeCode:encodeCode,decodeCode:decodeCode,rarityOf:rarityOf,makeInvention:makeInvention,dailyItemIndex:dailyItemIndex,shareTextOf:shareTextOf};}
+
+/* ===== 画面 ===== */
+if(typeof document!=="undefined"){
+(function(){
+var $=function(id){return document.getElementById(id);};
+var today=dateKey(new Date());
+var LS="hatsumei_v1";
+var store={found:{},recent:[]};
+try{ var raw=JSON.parse(localStorage.getItem(LS)||"null"); if(raw&&raw.found) store=raw;}catch(e){}
+var cur=null, spinning=false;
+var dItem=dailyItemIndex(today);
+$("dailyBox").textContent="今日のお題モノ："+ITEMS[dItem].e+" "+ITEMS[dItem].n+"（"+today+"）";
+
+function save(){ try{ localStorage.setItem(LS,JSON.stringify(store));}catch(e){}}
+function setReel(k,emo,lab){ $("rEmo"+k).textContent=emo; $("rLab"+k).textContent=lab;}
+function refreshZukan(){
+var c=Object.keys(store.found).length;
+$("zukanCount").textContent="発見 "+c+" / "+TOTAL+" 件";
+$("zukanBar").style.width=(c/TOTAL*100)+"%";
+var box=$("recent"); box.innerHTML="";
+store.recent.slice(0,8).forEach(function(inv){
+var btn=document.createElement("button"); btn.type="button";
+btn.textContent="["+inv.rarity+"] "+inv.name+"（"+inv.code+"）";
+btn.addEventListener("click",function(){ show(inv);});
+box.appendChild(btn);
+});
+}
+function show(inv){
+cur=inv;
+setReel(0,ITEMS[inv.i].e,ITEMS[inv.i].n);
+setReel(1,"✨",FUNCS[inv.f].n);
+setReel(2,"⚠️","ただし…");
+$("pRare").textContent="★ "+inv.rarity+" レア";
+$("pRare").className="rare rare-"+inv.rarity;
+$("pName").textContent=inv.name;
+$("pDesc").textContent=ITEMS[inv.i].n+"が、"+FUNCS[inv.f].v+"発明品です。";
+$("pBut").textContent=BUTS[inv.b]+"。";
+$("pComment").textContent=inv.comment;
+$("pSpec").innerHTML="";
+[["型番",inv.model],["価格",inv.price.toLocaleString()+"円（税込・気持ち）"],["発明コード",inv.code],["図鑑No.",String((inv.i*FUNCS.length+inv.f)*BUTS.length+inv.b+1)+" / "+TOTAL]].forEach(function(p){
+var s=document.createElement("span"); s.textContent=p[0]+"："+p[1]; $("pSpec").appendChild(s);
+});
+$("product").style.display="block";
+$("product").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function register(inv){
+var isNew=!store.found[inv.code];
+store.found[inv.code]=1;
+store.recent=[inv].concat(store.recent.filter(function(x){return x.code!==inv.code;})).slice(0,30);
+save(); refreshZukan();
+return isNew;
+}
+function spin(){
+if(spinning) return; spinning=true;
+$("spinBtn").disabled=true; $("product").style.display="none";
+var daily=$("dailyMode").checked;
+var target={ i: daily? dItem: Math.floor(Math.random()*ITEMS.length),
+f: Math.floor(Math.random()*FUNCS.length),
+b: Math.floor(Math.random()*BUTS.length)};
+var stops=[700,1100,1500], timers=[];
+[0,1,2].forEach(function(k){
+timers[k]=setInterval(function(){
+if(k===0) setReel(0,ITEMS[Math.floor(Math.random()*ITEMS.length)].e,ITEMS[Math.floor(Math.random()*ITEMS.length)].n);
+if(k===1) setReel(1,"✨",FUNCS[Math.floor(Math.random()*FUNCS.length)].n);
+if(k===2) setReel(2,"⚠️","ただし…");
+},70);
+setTimeout(function(){
+clearInterval(timers[k]);
+if(k===0) setReel(0,ITEMS[target.i].e,ITEMS[target.i].n);
+if(k===1) setReel(1,"✨",FUNCS[target.f].n);
+if(k===2) setReel(2,"⚠️",BUTS[target.b].replace(/^ただし/,""));
+if(k===2){
+spinning=false; $("spinBtn").disabled=false;
+var inv=makeInvention(target.i,target.f,target.b);
+var isNew=register(inv); show(inv);
+if(isNew) $("pComment").textContent="✨ 図鑑に新規登録！ "+inv.comment;
+if(navigator.vibrate) navigator.vibrate(inv.rarity==="UR"?[50,40,120]:30);
+}
+}, stops[k]);
+});
+}
+$("spinBtn").addEventListener("click",spin);
+$("shareBtn").addEventListener("click",function(){
+if(!cur) return;
+var text=shareTextOf(cur);
+if(navigator.share) navigator.share({text:text}).catch(function(){});
+else if(navigator.clipboard) navigator.clipboard.writeText(text).then(function(){ $("codeMsg").textContent="シェア文をコピーしました。";});
+});
+$("codeBtn").addEventListener("click",function(){
+var d=decodeCode($("codeIn").value);
+if(!d){ $("codeMsg").textContent="そのコードは読み取れませんでした。INV-XXXX の形で入れてください。"; return;}
+$("codeMsg").textContent="";
+var inv=makeInvention(d.i,d.f,d.b); register(inv); show(inv);
+});
+$("cardBtn").addEventListener("click",function(){
+if(!cur) return;
+var cv=$("cv"), ctx=cv.getContext("2d");
+ctx.fillStyle="#241d13"; ctx.fillRect(0,0,1200,630);
+ctx.fillStyle="#ffb02e"; ctx.fillRect(0,0,1200,14);
+ctx.fillStyle="#f7efdd"; ctx.font="700 44px sans-serif"; ctx.fillText("発明スロット研究所",56,96);
+ctx.font="800 64px sans-serif";
+var nm=cur.name; if(ctx.measureText(nm).width>1080){ ctx.font="800 52px sans-serif";}
+ctx.fillText(nm,56,196);
+ctx.font="34px sans-serif"; ctx.fillStyle="#e8dcc0";
+ctx.fillText(ITEMS[cur.i].n+"が"+FUNCS[cur.f].v,56,272);
+ctx.fillStyle="#ff9d8a"; ctx.fillText(BUTS[cur.b]+"。",56,330);
+ctx.fillStyle="#f7efdd"; ctx.font="700 40px sans-serif";
+ctx.fillText(cur.price.toLocaleString()+"円",56,424);
+ctx.font="30px sans-serif"; ctx.fillStyle="#b8a888";
+ctx.fillText("型番 "+cur.model+" / レア度 "+cur.rarity+" / 発明コード "+cur.code,56,486);
+ctx.fillText("図鑑 "+Object.keys(store.found).length+" / "+TOTAL+" 件発見",56,540);
+var a=document.createElement("a");
+a.download="invention-"+cur.code+".png"; a.href=cv.toDataURL("image/png"); a.click();
+});
+refreshZukan();
+})();
+}
+</script>
+</body>
+</html>
