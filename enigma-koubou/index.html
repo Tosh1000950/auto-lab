@@ -54,6 +54,36 @@ h1{font-size:1.5rem;text-align:center;letter-spacing:.08em} h1 .a{color:var(--ac
     <button id="btnClear">入力と出力を消す</button>
   </div>
 </div>
+
+<details class="machine" style="margin-top:12px" open>
+<summary style="cursor:pointer;font-weight:800;color:var(--acc)">⚙ 設定（ローター・リング・プラグ盤）と共有</summary>
+<div style="margin-top:10px;display:grid;gap:10px">
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <span style="color:var(--sub);font-size:.85rem">ローター（左・中・右）</span>
+    <select id="selR0"></select><select id="selR1"></select><select id="selR2"></select>
+    <span style="color:var(--sub);font-size:.85rem">反射器</span>
+    <select id="selRef"><option>B</option><option>C</option></select>
+    <span style="color:var(--sub);font-size:.85rem">リング（左・中・右）</span>
+    <select id="selG0"></select><select id="selG1"></select><select id="selG2"></select>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <span style="color:var(--sub);font-size:.85rem">プラグ盤（例：AZ BY CX、最大13組・重複不可）</span>
+    <input id="inPlugs" size="30" placeholder="AZ BY CX DW" style="padding:7px;border-radius:8px;border:1px solid var(--line);background:#0c0d10;color:var(--ink)">
+    <button id="btnApply" style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">設定を適用</button>
+    <span id="applyMsg" style="color:var(--acc);font-size:.85rem"></span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <span style="color:var(--sub);font-size:.85rem">設定コード</span>
+    <input id="inCode" size="34" readonly style="padding:7px;border-radius:8px;border:1px solid var(--line);background:#0c0d10;color:var(--ink)">
+    <button id="btnCopyUrl" style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">共有URLをコピー</button>
+    <button id="btnDaily" style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">📅 今日のキーシート</button>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <input id="inLoad" size="34" placeholder="ENI1-… のコードを貼る" style="padding:7px;border-radius:8px;border:1px solid var(--line);background:#0c0d10;color:var(--ink)">
+    <button id="btnLoad" style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">コードから読み込む</button>
+  </div>
+</div>
+</details>
 <p class="note">同じ設定で暗号文を打つと平文に戻ります（相反性）。どの文字も自分自身にはなりません ― これが後の解読の糸口になりました。</p>
 </main>
 <script>
@@ -143,6 +173,65 @@ class Enigma {
   windowString() { return this.positions.map(I2A).join(''); }
 }
 
+/* ===== Stage 3：設定コードと日替わりキーシート ===== */
+const ROMAN = { I: 1, II: 2, III: 3, IV: 4, V: 5 };
+const ROMAN_R = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V' };
+function plugsToString(plugMap) {
+  const seen = new Set(), pairs = [];
+  for (let i = 0; i < 26; i++) {
+    const j = plugMap[i];
+    if (j !== i && !seen.has(i) && !seen.has(j)) { pairs.push(I2A(i) + I2A(j)); seen.add(i); seen.add(j); }
+  }
+  return pairs.sort().join('');
+}
+function encodeConfig(cfg) {
+  const m = new Enigma(cfg); /* 検証を兼ねる */
+  const rot = cfg.rotors.map(r => ROMAN[r]).join('');
+  const rings = (cfg.rings || [0, 0, 0]).map(I2A).join('');
+  const pos = (cfg.positions || [0, 0, 0]).map(I2A).join('');
+  const plugs = plugsToString(m.plugMap) || '-';
+  return 'ENI1-' + rot + '-' + (cfg.reflector || 'B') + '-' + rings + '-' + pos + '-' + plugs;
+}
+function decodeConfig(code) {
+  const parts = String(code).trim().toUpperCase().split('-');
+  if (parts.length !== 6 || parts[0] !== 'ENI1') return null;
+  const rotDigits = parts[1];
+  if (!/^[1-5]{3}$/.test(rotDigits)) return null;
+  const rotors = rotDigits.split('').map(d => ROMAN_R[+d]);
+  if (new Set(rotors).size !== 3) return null;
+  if (!/^[BC]$/.test(parts[2])) return null;
+  if (!/^[A-Z]{3}$/.test(parts[3]) || !/^[A-Z]{3}$/.test(parts[4])) return null;
+  const plugs = parts[5] === '-' ? '' : parts[5];
+  if (plugs && (!/^[A-Z]+$/.test(plugs) || plugs.length % 2 !== 0)) return null;
+  const plugStr = plugs ? plugs.match(/.{2}/g).join(' ') : '';
+  const cfg = { rotors, reflector: parts[2], rings: parts[3].split('').map(A2I), positions: parts[4].split('').map(A2I), plugs: plugStr };
+  try { new Enigma(cfg); } catch (e) { return null; }
+  return cfg;
+}
+function hashSeed(str) { let h = 2166136261; for (const ch of str) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function dailyConfig(dateStr) {
+  let a = hashSeed('enigma-koubou:' + dateStr);
+  const rng = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const names = ['I', 'II', 'III', 'IV', 'V'];
+  const order = names.slice();
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const pool = letters.slice();
+  const pairs = [];
+  for (let k = 0; k < 10; k++) {
+    const x = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+    const y = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+    pairs.push(x + y);
+  }
+  return {
+    rotors: order.slice(0, 3), reflector: rng() < 0.5 ? 'B' : 'C',
+    rings: [0, 0, 0].map(() => Math.floor(rng() * 26)),
+    positions: [0, 0, 0].map(() => Math.floor(rng() * 26)),
+    plugs: pairs.join(' ')
+  };
+}
+
+
 
 const LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 let config={rotors:['I','II','III'],reflector:'B',rings:[0,0,0],positions:[0,0,0],plugs:''};
@@ -198,6 +287,55 @@ document.addEventListener('keydown',e=>{
 document.getElementById('btnResetPos').addEventListener('click',()=>{ config.positions=[0,0,0]; machine=new Enigma(config); renderWindows(); });
 document.getElementById('btnClear').addEventListener('click',()=>{ inBuf=''; outBuf='';
   document.getElementById('inTxt').textContent=''; document.getElementById('outTxt').textContent=''; });
+
+const ROTOR_NAMES=['I','II','III','IV','V'];
+function fillSelect(id,options,current){
+  const el=document.getElementById(id);
+  el.innerHTML=options.map(o=>'<option'+(o===current?' selected':'')+'>'+o+'</option>').join('');
+}
+function syncSettingsUI(){
+  fillSelect('selR0',ROTOR_NAMES,config.rotors[0]); fillSelect('selR1',ROTOR_NAMES,config.rotors[1]); fillSelect('selR2',ROTOR_NAMES,config.rotors[2]);
+  fillSelect('selRef',['B','C'],config.reflector);
+  fillSelect('selG0',LETTERS.split(''),LETTERS[config.rings[0]]); fillSelect('selG1',LETTERS.split(''),LETTERS[config.rings[1]]); fillSelect('selG2',LETTERS.split(''),LETTERS[config.rings[2]]);
+  document.getElementById('inPlugs').value=config.plugs||'';
+  document.getElementById('inCode').value=encodeConfig(config);
+}
+function applyConfig(cfg,msg){
+  try{
+    machine=new Enigma(cfg);
+  }catch(e){ document.getElementById('applyMsg').textContent='エラー： '+e.message; return; }
+  config=cfg; inBuf=''; outBuf='';
+  document.getElementById('inTxt').textContent=''; document.getElementById('outTxt').textContent='';
+  renderWindows(); syncSettingsUI();
+  document.getElementById('applyMsg').textContent=msg||'適用しました';
+}
+document.getElementById('btnApply').addEventListener('click',()=>{
+  const rotors=[0,1,2].map(i=>document.getElementById('selR'+i).value);
+  if(new Set(rotors).size!==3){ document.getElementById('applyMsg').textContent='エラー：同じローターは2つ使えません'; return; }
+  applyConfig({ rotors, reflector:document.getElementById('selRef').value,
+    rings:[0,1,2].map(i=>LETTERS.indexOf(document.getElementById('selG'+i).value)),
+    positions:config.positions.slice(), plugs:document.getElementById('inPlugs').value.trim() });
+});
+document.getElementById('btnCopyUrl').addEventListener('click',()=>{
+  const url=location.origin+location.pathname+'?cfg='+encodeURIComponent(encodeConfig(config));
+  if(navigator.clipboard) navigator.clipboard.writeText(url);
+  document.getElementById('applyMsg').textContent='共有URLをコピーしました';
+});
+document.getElementById('btnLoad').addEventListener('click',()=>{
+  const cfg=decodeConfig(document.getElementById('inLoad').value);
+  if(!cfg){ document.getElementById('applyMsg').textContent='エラー：コードが読み取れませんでした'; return; }
+  applyConfig(cfg,'コードから読み込みました');
+});
+document.getElementById('btnDaily').addEventListener('click',()=>{
+  const now=new Date(); const jst=new Date(now.getTime()+9*3600*1000);
+  const ds=jst.toISOString().slice(0,10);
+  applyConfig(dailyConfig(ds), ds+' のキーシートを適用しました');
+});
+(function(){
+  const q=new URLSearchParams(location.search); const c=q.get('cfg');
+  if(c){ const cfg=decodeConfig(c); if(cfg){ config=cfg; machine=new Enigma(config); } }
+})();
+syncSettingsUI();
 renderWindows();
 </script>
 </body>
