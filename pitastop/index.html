@@ -79,7 +79,8 @@
   </section>
 
   <div class="row">
-    <button id="shareBtn" type="button" disabled>結果をシェア / コピー</button>
+    <button id="shareBtn" type="button" disabled>結果をシェア</button>
+    <button id="xBtn" type="button" disabled>𝕏 Xで投稿</button>
     <button id="resetBtn" type="button">今日の記録をリセット</button>
   </div>
 
@@ -170,7 +171,7 @@ if (typeof document!=="undefined"){
     $("stAllBest").textContent = all.length ? Math.min.apply(null,all)+"ms" : "—";
     $("stStreak").textContent = calcStreak();
     var t=tries();
-    $("shareBtn").disabled = !(mode==="daily" ? dt.length : freeTries.length);
+    $("shareBtn").disabled = $("xBtn").disabled = !(mode==="daily" ? dt.length : freeTries.length);
     var hist=$("history"); hist.innerHTML="";
     t.forEach(function(ms){ var s=document.createElement("span"); s.textContent=ms+"ms "+closenessEmoji(ms); hist.appendChild(s); });
     if(mode==="daily" && dt.length>=3 && !running){ btn.disabled=true; btn.textContent="今日は終了！また明日"; hint.textContent="3回使い切ったよ。結果をシェアしよう。"; }
@@ -227,11 +228,18 @@ if (typeof document!=="undefined"){
   document.addEventListener("keydown", function(e){
     if(e.code==="Space" && !/BUTTON|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); if(!btn.disabled) running ? stopTimer(false) : startTimer(); }
   });
-  $("shareBtn").addEventListener("click", function(){
-    var text=buildShareText(today, getDailyTarget(today), mode==="daily"&&store.days[today].length?store.days[today]:freeTries);
-    if(navigator.share){ navigator.share({text:text}).catch(function(){}); }
-    else if(navigator.clipboard){ navigator.clipboard.writeText(text).then(function(){ hint.textContent="シェア文をコピーしたよ。Xなどに貼ってね。"; }); }
-  });
+function pageUrl(){ return location.origin+location.pathname; }
+function openXPost(text){ var u="https://twitter.com/intent/tweet?text="+encodeURIComponent(text); var w=window.open(u,"_blank"); if(!w) location.href=u; }
+function shareSmart(text,canvas){
+  function doText(){ if(navigator.share){ navigator.share({text:text}).catch(function(e){ if(!e||e.name!=="AbortError") openXPost(text); }); } else { openXPost(text); } }
+  if(canvas&&navigator.canShare&&canvas.toBlob){ canvas.toBlob(function(b){ if(!b){ doText(); return; } var f=new File([b],"share.png",{type:"image/png"}); if(navigator.canShare({files:[f]})){ navigator.share({text:text,files:[f]}).catch(function(e){ if(!e||e.name!=="AbortError") doText(); }); } else { doText(); } },"image/png"); }
+  else { doText(); }
+}
+  function currentShareText(){
+    return buildShareText(today, getDailyTarget(today), mode==="daily"&&store.days[today].length?store.days[today]:freeTries)+"\n"+pageUrl();
+  }
+  $("shareBtn").addEventListener("click", function(){ shareSmart(currentShareText(), null); });
+  $("xBtn").addEventListener("click", function(){ openXPost(currentShareText()); });
   $("resetBtn").addEventListener("click", function(){
     store.days[today]=[]; save(); $("result").style.display="none"; clock.textContent="0.00"; refresh();
     hint.textContent="今日の記録をリセットしたよ。";
