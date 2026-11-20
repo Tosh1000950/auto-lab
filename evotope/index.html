@@ -501,6 +501,8 @@ function drawBigCreature(g2,g,x,y,R){
   g2.fillStyle='#101408'; g2.beginPath(); g2.arc(hx+6,-8,5,0,Math.PI*2); g2.arc(hx+6,8,5,0,Math.PI*2); g2.fill();
   g2.restore();
 }
+const PAGE_URL = location.origin + location.pathname;
+function openXPost(text){ const u='https://twitter.com/intent/tweet?text='+encodeURIComponent(text); const w=window.open(u,'_blank'); if(!w) location.href=u; }
 function makeCard(speciesId){
   const sp=sim.tracker.species.find(s=>s.id===speciesId); if(!sp||!sp.meanGenes) return;
   const g=sp.meanGenes, code=encodeGenes(g);
@@ -520,12 +522,17 @@ function makeCard(speciesId){
   g2.fillText('変化の意味： '+causalTags(sp.founderGenes,g).join(' / '),580,500);
   g2.fillText('エボトープ ― 世界シード '+seed,580,560);
   const url=cnv.toDataURL('image/png');
-  const share='🧬 エボトープで種「'+sp.name+'」が育った！ '+code+'（このコードで君の世界にも迎えられる）';
+  const share='🧬 エボトープで種「'+sp.name+'」が育った！ '+code+'（このコードで君の世界にも迎えられる）\n'+PAGE_URL;
   document.getElementById('cardArea').innerHTML =
     '<img src="'+url+'" style="width:100%;border-radius:12px" alt="種カード"><div style="margin-top:6px">'+
     '<a href="'+url+'" download="evotope-'+code+'.png" style="color:var(--acc)">⬇ カード画像を保存</a>　'+
-    '<button id="btnShareCard" style="padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">シェア文をコピー</button></div>';
+    '<button id="btnShareCard" style="padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">シェア文をコピー</button> <button id="btnXCard" style="padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">𝕏 Xで投稿</button> <button id="btnImgCard" style="padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">画像つきで共有</button></div>';
   document.getElementById('btnShareCard').addEventListener('click',()=>navigator.clipboard&&navigator.clipboard.writeText(share));
+  document.getElementById('btnXCard').addEventListener('click',()=>openXPost(share));
+  document.getElementById('btnImgCard').addEventListener('click',()=>{
+    if(navigator.canShare){ cnv.toBlob(b=>{ if(!b){ openXPost(share); return; } const f=new File([b],'evotope-'+code+'.png',{type:'image/png'}); if(navigator.canShare({files:[f]})){ navigator.share({text:share,files:[f]}).catch(e=>{ if(!e||e.name!=='AbortError') openXPost(share); }); } else openXPost(share); }); }
+    else openXPost(share);
+  });
 }
 document.getElementById('btnWorld').addEventListener('click',()=>{
   const v=parseInt(document.getElementById('seedInput').value,10);
