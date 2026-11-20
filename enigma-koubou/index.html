@@ -76,6 +76,7 @@ h1{font-size:1.5rem;text-align:center;letter-spacing:.08em} h1 .a{color:var(--ac
     <span style="color:var(--sub);font-size:.85rem">設定コード</span>
     <input id="inCode" size="34" readonly style="padding:7px;border-radius:8px;border:1px solid var(--line);background:#0c0d10;color:var(--ink)">
     <button id="btnCopyUrl" style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">共有URLをコピー</button>
+    <button id="btnX" style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">𝕏 Xで投稿</button>
     <button id="btnDaily" style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer">📅 今日のキーシート</button>
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
@@ -415,6 +416,12 @@ document.getElementById('btnCopyUrl').addEventListener('click',()=>{
   const url=location.origin+location.pathname+'?cfg='+encodeURIComponent(encodeConfig(config));
   if(navigator.clipboard) navigator.clipboard.writeText(url);
   document.getElementById('applyMsg').textContent='共有URLをコピーしました';
+});
+document.getElementById('btnX').addEventListener('click',()=>{
+  const url=location.origin+location.pathname+'?cfg='+encodeURIComponent(encodeConfig(config));
+  const text='エニグマ工房｜この設定で暗号を作ったよ。同じ設定で解読に挑戦してみて。\n'+url;
+  const u='https://twitter.com/intent/tweet?text='+encodeURIComponent(text); const w=window.open(u,'_blank'); if(!w) location.href=u;
+  document.getElementById('applyMsg').textContent='Xの投稿画面を開きました';
 });
 document.getElementById('btnLoad').addEventListener('click',()=>{
   const cfg=decodeConfig(document.getElementById('inLoad').value);
