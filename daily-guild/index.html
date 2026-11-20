@@ -100,6 +100,7 @@ footer{color:var(--sub);font-size:.78rem;text-align:center;line-height:1.7;paddi
     <div style="height:12px"></div>
     <div class="row">
       <button id="shareBtn" type="button">今日の冒険をシェア</button>
+      <button id="xBtn" type="button">𝕏 Xで投稿</button>
       <button id="cardBtn" type="button">冒険カード画像を作る</button>
     </div>
   </section>
@@ -493,12 +494,19 @@ if(typeof document!=="undefined"){
     if(navigator.clipboard) navigator.clipboard.writeText(text).then(function(){ $("codeMsg").textContent="貸出文をコピーしました："+best.name; });
     else $("codeMsg").textContent=text;
   });
-  $("shareBtn").addEventListener("click",function(){
+function pageUrl(){ return location.origin+location.pathname; }
+function openXPost(text){ var u="https://twitter.com/intent/tweet?text="+encodeURIComponent(text); var w=window.open(u,"_blank"); if(!w) location.href=u; }
+function shareSmart(text,canvas){
+  function doText(){ if(navigator.share){ navigator.share({text:text}).catch(function(e){ if(!e||e.name!=="AbortError") openXPost(text); }); } else { openXPost(text); } }
+  if(canvas&&navigator.canShare&&canvas.toBlob){ canvas.toBlob(function(b){ if(!b){ doText(); return; } var f=new File([b],"share.png",{type:"image/png"}); if(navigator.canShare({files:[f]})){ navigator.share({text:text,files:[f]}).catch(function(e){ if(!e||e.name!=="AbortError") doText(); }); } else { doText(); } },"image/png"); }
+  else { doText(); }
+}
+  function guildShareText(){
     var playedKeys2=Object.keys(store.days).filter(function(k){ return Object.keys(store.days[k].results||{}).length>0; });
-    var text=buildShare(tKey,day,store.exp,levelFor(store.exp).level,streakFrom(playedKeys2,tKey));
-    if(navigator.share) navigator.share({text:text}).catch(function(){});
-    else if(navigator.clipboard) navigator.clipboard.writeText(text).then(function(){ $("newInv").textContent="シェア文をコピーしました。"; });
-  });
+    return buildShare(tKey,day,store.exp,levelFor(store.exp).level,streakFrom(playedKeys2,tKey))+"\n"+pageUrl();
+  }
+  $("shareBtn").addEventListener("click",function(){ shareSmart(guildShareText(), null); });
+  $("xBtn").addEventListener("click",function(){ openXPost(guildShareText()); });
   $("cardBtn").addEventListener("click",function(){
     var cv=$("cv"), ctx=cv.getContext("2d"), lv=levelFor(store.exp);
     ctx.fillStyle="#1f1b31"; ctx.fillRect(0,0,1200,630);
