@@ -76,7 +76,8 @@ footer{color:var(--sub);font-size:.78rem;text-align:center;line-height:1.7;paddi
 <div class="spec" id="pSpec"></div>
 <div style="height:12px"></div>
 <div class="row">
-<button id="shareBtn" type="button">シェア / コピー</button>
+<button id="shareBtn" type="button">シェア（画像つき）</button>
+<button id="xBtn" type="button">𝕏 Xで投稿</button>
 <button id="cardBtn" type="button">商品カード画像を作る</button>
 </div>
 </section>
@@ -201,7 +202,7 @@ function show(inv){
 cur=inv;
 setReel(0,ITEMS[inv.i].e,ITEMS[inv.i].n);
 setReel(1,"✨",FUNCS[inv.f].n);
-setReel(2,"⚠️","ただし…");
+setReel(2,"⚠️",BUTS[inv.b].replace(/^ただし/,""));
 $("pRare").textContent="★ "+inv.rarity+" レア";
 $("pRare").className="rare rare-"+inv.rarity;
 $("pName").textContent=inv.name;
@@ -234,7 +235,7 @@ var stops=[700,1100,1500], timers=[];
 timers[k]=setInterval(function(){
 if(k===0) setReel(0,ITEMS[Math.floor(Math.random()*ITEMS.length)].e,ITEMS[Math.floor(Math.random()*ITEMS.length)].n);
 if(k===1) setReel(1,"✨",FUNCS[Math.floor(Math.random()*FUNCS.length)].n);
-if(k===2) setReel(2,"⚠️","ただし…");
+if(k===2) setReel(2,"⚠️",BUTS[Math.floor(Math.random()*BUTS.length)].replace(/^ただし/,""));
 },70);
 setTimeout(function(){
 clearInterval(timers[k]);
@@ -252,11 +253,20 @@ if(navigator.vibrate) navigator.vibrate(inv.rarity==="UR"?[50,40,120]:30);
 });
 }
 $("spinBtn").addEventListener("click",spin);
+function pageUrl(){ return location.origin+location.pathname; }
+function openXPost(text){ var u="https://twitter.com/intent/tweet?text="+encodeURIComponent(text); var w=window.open(u,"_blank"); if(!w) location.href=u; }
+function shareSmart(text,canvas){
+  function doText(){ if(navigator.share){ navigator.share({text:text}).catch(function(e){ if(!e||e.name!=="AbortError") openXPost(text); }); } else { openXPost(text); } }
+  if(canvas&&navigator.canShare&&canvas.toBlob){ canvas.toBlob(function(b){ if(!b){ doText(); return; } var f=new File([b],"share.png",{type:"image/png"}); if(navigator.canShare({files:[f]})){ navigator.share({text:text,files:[f]}).catch(function(e){ if(!e||e.name!=="AbortError") doText(); }); } else { doText(); } },"image/png"); }
+  else { doText(); }
+}
 $("shareBtn").addEventListener("click",function(){
 if(!cur) return;
-var text=shareTextOf(cur);
-if(navigator.share) navigator.share({text:text}).catch(function(){});
-else if(navigator.clipboard) navigator.clipboard.writeText(text).then(function(){ $("codeMsg").textContent="シェア文をコピーしました。";});
+shareSmart(shareTextOf(cur)+"\n"+pageUrl(), drawCard());
+});
+$("xBtn").addEventListener("click",function(){
+if(!cur) return;
+openXPost(shareTextOf(cur)+"\n"+pageUrl());
 });
 $("codeBtn").addEventListener("click",function(){
 var d=decodeCode($("codeIn").value);
@@ -264,8 +274,8 @@ if(!d){ $("codeMsg").textContent="そのコードは読み取れませんでし�
 $("codeMsg").textContent="";
 var inv=makeInvention(d.i,d.f,d.b); register(inv); show(inv);
 });
-$("cardBtn").addEventListener("click",function(){
-if(!cur) return;
+function drawCard(){
+if(!cur) return null;
 var cv=$("cv"), ctx=cv.getContext("2d");
 ctx.fillStyle="#241d13"; ctx.fillRect(0,0,1200,630);
 ctx.fillStyle="#ffb02e"; ctx.fillRect(0,0,1200,14);
@@ -281,6 +291,10 @@ ctx.fillText(cur.price.toLocaleString()+"円",56,424);
 ctx.font="30px sans-serif"; ctx.fillStyle="#b8a888";
 ctx.fillText("型番 "+cur.model+" / レア度 "+cur.rarity+" / 発明コード "+cur.code,56,486);
 ctx.fillText("図鑑 "+Object.keys(store.found).length+" / "+TOTAL+" 件発見",56,540);
+return cv;
+}
+$("cardBtn").addEventListener("click",function(){
+var cv=drawCard(); if(!cv) return;
 var a=document.createElement("a");
 a.download="invention-"+cur.code+".png"; a.href=cv.toDataURL("image/png"); a.click();
 });
