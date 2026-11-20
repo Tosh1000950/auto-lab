@@ -55,6 +55,7 @@ footer{color:var(--sub);font-size:.78rem;text-align:center;line-height:1.7;paddi
     <div class="row" style="margin-top:8px">
       <button id="rerollBtn" type="button">運命の書き換え（1日1回）</button>
       <button id="shareBtn" type="button">今日の記録をシェア</button>
+      <button id="xBtn" type="button">𝕏 Xで投稿</button>
     </div>
   </section>
 
@@ -232,10 +233,18 @@ if(typeof document!=="undefined"){
     day.quests=rerollPick(today,day.quests,slot);
     store.rerolled[today]=true; save(); render();
   });
+function pageUrl(){ return location.origin+location.pathname; }
+function openXPost(text){ var u="https://twitter.com/intent/tweet?text="+encodeURIComponent(text); var w=window.open(u,"_blank"); if(!w) location.href=u; }
+function shareSmart(text,canvas){
+  function doText(){ if(navigator.share){ navigator.share({text:text}).catch(function(e){ if(!e||e.name!=="AbortError") openXPost(text); }); } else { openXPost(text); } }
+  if(canvas&&navigator.canShare&&canvas.toBlob){ canvas.toBlob(function(b){ if(!b){ doText(); return; } var f=new File([b],"share.png",{type:"image/png"}); if(navigator.canShare({files:[f]})){ navigator.share({text:text,files:[f]}).catch(function(e){ if(!e||e.name!=="AbortError") doText(); }); } else { doText(); } },"image/png"); }
+  else { doText(); }
+}
   $("shareBtn").addEventListener("click",function(){
-    var text=shareTextOf(today,day.quests,day.done,store.exp);
-    if(navigator.share) navigator.share({text:text}).catch(function(){});
-    else if(navigator.clipboard) navigator.clipboard.writeText(text).then(function(){ $("celebrate").textContent="シェア文をコピーしました。"; });
+    shareSmart(shareTextOf(today,day.quests,day.done,store.exp)+"\n"+pageUrl(), null);
+  });
+  $("xBtn").addEventListener("click",function(){
+    openXPost(shareTextOf(today,day.quests,day.done,store.exp)+"\n"+pageUrl());
   });
   save(); render();
 })();
