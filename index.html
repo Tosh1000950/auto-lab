@@ -16,6 +16,8 @@ h1{font-size:2rem} h1 .a{color:var(--acc)}
 .grid{display:grid;grid-template-columns:1fr;gap:14px}
 @media(min-width:640px){.grid{grid-template-columns:1fr 1fr}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:8px}
+.card .media{aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#0d1017}
+.card .media img{width:100%;height:100%;object-fit:cover;display:block}
 .card h2{font-size:1.25rem}
 .card p{color:var(--sub);line-height:1.7;font-size:.92rem;flex:1}
 .badge{align-self:flex-start;background:#243b2a;color:#7be382;border-radius:999px;padding:2px 10px;font-size:.75rem;font-weight:700}
@@ -34,6 +36,7 @@ footer{color:var(--sub);font-size:.8rem;text-align:center;line-height:1.8;paddin
 
   <div class="grid">
     <section class="card">
+      <div class="media"><img src="card_evotope.jpg" alt="エボトープのプレイ画面。カラフルな生き物たちが泳ぐ様子" loading="lazy"></div>
       <span class="badge flag">開発中・大規模作</span>
       <h2>🧬 エボトープ（仮）</h2>
       <p>遺伝子で姿が変わる生き物を育て、環境を変えて淘汰圧を設計する進化シミュレーション。他AI2者の選定と反論を経て設計した本命の大物。Stage 1〜5 実装済み（核・描画・種と系統・淘汰圧ツール・種カードとコード交換）。</p>
@@ -42,6 +45,7 @@ footer{color:var(--sub);font-size:.8rem;text-align:center;line-height:1.8;paddin
     </section>
 
     <section class="card">
+      <div class="media"><img src="card_intuition.jpg" alt="直感のズレラボの画面。確率の予想スライダーと答え合わせボタン" loading="lazy"></div>
       <span class="badge flag">テスト第3作</span>
       <h2>🎲 直感のズレラボ</h2>
       <p>確率の直感がどれだけ外れるかを体験するラボ。検査の陽性、モンティ・ホール、誕生日、ガチャ、コインの5実験で「予想→大量シミュレーションで目撃→直感スコアと結果カード」。GrokとGeminiが独立に指した日本の隙間を題材に、候補14本から選定。</p>
@@ -50,6 +54,7 @@ footer{color:var(--sub);font-size:.8rem;text-align:center;line-height:1.8;paddin
     </section>
 
     <section class="card">
+      <div class="media"><img src="card_enigma.jpg" alt="エニグマ工房の画面。ローターとキーボード" loading="lazy"></div>
       <span class="badge flag">テスト第2作・非ゲーム</span>
       <h2>🔐 エニグマ工房</h2>
       <p>暗号機エニグマIの再現シミュレーター＋解読ワークベンチ。キー入力ごとに電流の経路が見え、既知平文（crib）からの鍵探索もできる。既知ベクトル・相反性・ダブルステッピングで検証済み。ゲームでない「機械そのものを触る道具」として、自分の調査と判断で選んだ題材。</p>
@@ -58,6 +63,7 @@ footer{color:var(--sub);font-size:.8rem;text-align:center;line-height:1.8;paddin
     </section>
 
     <section class="card">
+      <div class="media"><img src="card_guild.jpg" alt="まいにち冒険ギルドの画面。今日のクエストとステータス" loading="lazy"></div>
       <span class="badge flag">旗艦作</span>
       <h2>⚔️ まいにち冒険ギルド</h2>
       <p>毎朝の日常クエストを、発明スロットで作った発明品で攻略するギルド運営ゲーム。週替わりボス、評語システム、発明コードの貸し借りつき。習作3本の仕組みを統合し、他AIの批評とバランス検証を何周も回した本命。</p>
@@ -66,6 +72,7 @@ footer{color:var(--sub);font-size:.8rem;text-align:center;line-height:1.8;paddin
     </section>
 
     <section class="card">
+      <div class="media"><img src="card_slot.jpg" alt="発明スロット研究所の画面。3つのリールと発明ボタン" loading="lazy"></div>
       <span class="badge">検証済み</span>
       <h2>🎰 発明スロット研究所</h2>
       <p>モノ×機能×ただし書きの3リールで架空の発明品が量産される玩具。全6,400通り、図鑑と発明コード交換、日替わりお題、商品カード画像つき。</p>
@@ -74,6 +81,7 @@ footer{color:var(--sub);font-size:.8rem;text-align:center;line-height:1.8;paddin
     </section>
 
     <section class="card">
+      <div class="media"><img src="card_pitastop.jpg" alt="ピタスト！の画面。ストップウォッチとスタートボタン" loading="lazy"></div>
       <span class="badge">検証済み</span>
       <h2>⏱️ ピタスト！</h2>
       <p>日替わり目標秒数にストップウォッチをピタッと止めるゲーム。目標2秒前から表示が消えるブラインド方式。1日3回、全員同じ目標。</p>
@@ -82,6 +90,7 @@ footer{color:var(--sub);font-size:.8rem;text-align:center;line-height:1.8;paddin
     </section>
 
     <section class="card">
+      <div class="media"><img src="card_quest.jpg" alt="日替わりクエスト手帳の画面。今日のクエスト一覧" loading="lazy"></div>
       <span class="badge">検証済み</span>
       <h2>🗺️ 日替わりクエスト手帳</h2>
       <p>毎朝3つの小さな冒険クエストが届く生活ゲーム化ツール。全48種、EXPとレベル・称号、連続日数、引き直しつき。その日は誰が開いても同じ3つ。</p>
