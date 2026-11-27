@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FLIPFILL（フリップフィル）| 5×5反転ゲームの定跡書</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<meta property="og:title" content="FLIPFILL（フリップフィル）— 玄素盤">
+<meta property="og:description" content="置くと隣が全部ひっくり返る。5×5・25手の反転ゲーム。定跡・証明済み詰め問題・リアルタイム3D盤面。">
+<meta property="og:image" content="assets/og.webp">
+<meta property="og:type" content="website">
 <meta name="description" content="置いた石の上下左右の敵石が全部ひっくり返る、5×5の新しい反転ゲーム。20万回のランダム対戦とMCTSで作った初手マップ＆応手表、空き10マス以下の完全解析つき。">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZY9E6YLPBM"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-ZY9E6YLPBM');</script>
@@ -26,6 +31,14 @@ button.act:disabled{opacity:.4;cursor:default}
 .score{text-align:center;color:#5a5148;margin:2px 0 8px}
 /* ===== 木盤と石 ===== */
 .boardWrap{display:flex;justify-content:center;margin:10px 0}
+.brand{display:flex;align-items:center;gap:16px;margin:10px 0 2px}
+.brandLogo{width:84px;height:84px;border-radius:50%;box-shadow:0 6px 18px rgba(60,35,0,.3);flex:none}
+.brand h1{margin:0;font-size:2.1rem;letter-spacing:.14em}
+.brand .h1jp{font-size:1.05rem;letter-spacing:.05em;color:#5a5148}
+.brandSub{margin:3px 0 0;font-size:.95rem;color:#5a5148;line-height:1.6}
+#board3dWrap{display:none;width:min(88vmin,500px);aspect-ratio:1/1;margin:0 auto;border-radius:16px;overflow:hidden;box-shadow:0 18px 42px rgba(60,35,0,.35);touch-action:manipulation}
+#board3dWrap canvas{display:block;width:100%;height:100%}
+.loreImg{width:100%;border-radius:12px;display:block;margin:4px 0 10px}
 .board{--flipdur:.2s;width:min(88vmin,500px);aspect-ratio:1/1;display:grid;grid-template-columns:repeat(5,1fr);gap:2%;padding:3.4%;border-radius:16px;perspective:760px;
  background:
   linear-gradient(135deg, rgba(255,242,205,.16), rgba(70,38,0,.16)),
@@ -71,8 +84,11 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 </head>
 <body>
 <main>
-<h1>FLIPFILL（フリップフィル）</h1>
-<p class="sub">置くと、隣の敵石が全部ひっくり返る。5×5・全25手で盤が埋まる、新しい反転ゲームの定跡書。<br>2026年11月27日夜に考案、Colabで20万回対戦を回して初手の全マップを作り、28日にMCTSで応手表と解析盤、<strong>本日v3で質感・3D反転・打石音、v4で両面コマ化・AI難易度・現実版の遊び方</strong>を追加した実験作。</p>
+<div class="brand"><img class="brandLogo" src="assets/logo.webp" alt="FLIPFILL ロゴ：両面コマ"><div>
+<h1>FLIPFILL<span class="h1jp">（フリップフィル）</span></h1>
+<p class="brandSub">玄素盤 — 置くと、隣の敵石が全部ひっくり返る。5×5・全25手で盤が埋まる反転ゲームの定跡書。</p>
+</div></div>
+<p class="sub">2026年11月27日夜に考案。Colabで20万回対戦を回して初手の全マップを作り、MCTSで応手表と解析盤、完全読みの詰め問題集、<strong>v8でリアルタイム3D盤面（物理マテリアル＋環境反射）・ロゴ・世界観イラスト</strong>まで備えた、売り出せる完成品仕様の実験作。</p>
 
 <h2>遊ぶ</h2>
 <div class="card">
@@ -98,7 +114,7 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <button class="act" id="swapYes">スワップする（先手と石を交換）</button>
 <button class="act" id="swapNo">スワップしない</button>
 </div>
-<div class="boardWrap"><div class="board" id="board"></div></div>
+<div class="boardWrap"><div id="board3dWrap"></div><div class="board" id="board"></div></div>
 <p class="note">ルール：空きマスに自分の石を1つ置くと、上下左右に隣り合う敵石が<strong>すべて</strong>自分の色にひっくり返ります（斜めは対象外、連鎖なし）。25手で盤が埋まったら、石の多い方の勝ち。合計25は奇数なので引き分けはありません。先手が強すぎるため、2手目側が最初の1手を見て「スワップ（先手と交代）」できるパイルールを採用。AIは序盤は貪欲、中盤以降は貪欲＋完全読み（空き10以下）で打ちます。石を置く音と反転音には実録サンプル（Kenney Impact Sounds、CC0）を使い、読み込めない環境ではWeb Audio合成に切り替わります。</p>
 </div>
 
@@ -152,6 +168,7 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <h2>復刻ノート（架空の来歴）</h2>
 <div class="card">
 <p class="note">※この来歴は、作者Tosh1の未発表ファンタジー小説の世界を舞台にした<strong>架空設定</strong>です。現実の歴史ではありません。</p>
+<img class="loreImg" src="assets/lore.webp" alt="港国リヴェールの酒場で玄素盤を囲む船乗りたち（イラスト）">
 <p>ヴェルカント大陸の西端、港湾都市国家リヴェールの酒場では、夕刻になると決まって盤を囲む輪ができる。遊ばれているのは「両面戯（ドゥオ）」——現地の古い言葉で「二つの顔」を意味する小盤戯である。使うのは5×5の盤と、表が黒、裏が白の両面コマ25枚だけ。コマを置けば、上下左右の相手のコマがすべて裏返る。盤が満ちたとき、多くを表にしている者の勝ち。</p>
 <p>両面コマの由来は、船乗りたちの倹約だという。嵐の海で50枚のコマなど持っていられない。1枚で二役を兼ねるコマは、荷物の少なさと同時に、この遊戯の哲学になった。リヴェールには今も諺が残る——「一枚のコマに二つの顔。裏返すまで、人は分からぬ」。黒い面は「玄（げん）」、白い面は「素（そ）」と呼ばれ、盤は満ちることをもって終わるため「玄素盤（げんそばん）」、あるいは「満ち盤」とも呼ばれる。</p>
 <p>先手が圧倒的に有利なこの遊戯には、独特の作法がある。後手は、初手を見て「交代」を申し出ることができる。現地ではこれを「先手への礼」と呼び、強い初手ほど礼をもって奪われる——弱い初手に礼は要らない。つまりスワップとは、相手の初手への敬意の表明でもあるのだ。</p>
@@ -174,6 +191,7 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <p><strong>反転は3Dで、1石200ms・近い順にずらす。</strong>実在のリバーシ実装の実測値（180〜200ms）に合わせ、置いた石に近い順に約45msずつ遅らせてひっくり返します。速く打ち続けると自動で短縮され、入力をアニメーションで待たせることはありません。</p>
 <p><strong>音は「パチッ」を3層で合成。</strong>碁石が木盤に当たる音の正体は、2msの高音の当たる音＋木の胴鳴り（70ms）＋盤の低い響き（50ms）。公開レシピの木の共鳴比（1 : 1.73 : 2.33 : 3.91）でWeb Audio合成し、反転音は少し小さく・高く・短く、連なるほど音程を上げています。毎回ピッチを僅かに揺らすので、同じ音の連打で疲れません。</p>
 <p><strong>GPU生成は、あえて不採用。</strong>調べた結論では、AI音声生成は「鋭い一撃の音」が最も苦手で、生成しても結局トリミングと選別の手間は消えません。画像の木目テクスチャも、1マス約56pxの表示では細部が潰れて見分けがつかず、CSSのグラデーションで十分でした。容量の余裕は「重さ」ではなく「確かさ」に使うのが正解、というのが今回の学びです。音の方式としてはCC0の実録サンプルが文献上の1位で、合成は僅差の2位。実録を足すハイブリッド化は今後の候補です。</p>
+<p><strong>v8での変更：対戦盤をリアルタイム3Dに作り替えました。</strong>描画方式を改めて深度検索した結論（1位：Three.jsのリアルタイム3D、2位：事前レンダリング、3位：CSS極限、AI生成の駒画像は不採用）に従い、コマは旋盤形状（LatheGeometry）で上下2色に分かれた立体として生成し、物理マテリアル（黒はクリアコート1.0のラッカー仕上げ、白は暖色寄りのアイボリー）＋環境反射（RoomEnvironment）で質感を出しています。反転は1枚480ms・55msずらしのイージング回転＋跳ね＋着地の沈み込みで、影は実シャドウが追随します。盤は生成した木目テクスチャ（1024px）に格子溝を焼き込んだもの。WebGLが使えない環境では、従来のDOM盤がそのまま表示されます（解析盤・詰め盤は従来盤）。ロゴと酒場のイラストは生成画像を採用——単発の装飾絵は生成が得意で、幾何学的な回転アニメーションは不得意、という調査結果どおりの使い分けです。</p>
 <p><strong>v5での変更：音を実録に差し替えました。</strong>実際に遊んだ感想で「合成音がチープ」という指摘があり、文献上の1位だった方式に切り替えました。木への打撃音の実録（Kenney Impact Sounds、CC0）から、着手用に3テイク、反転用に2テイクを切り出し、着手ごとにランダムに選んでピッチを僅かに揺らします。反転音は着手より小さく、連なるほど再生速度を上げて音程を高くしています。読み込めない環境では、v3の合成音がそのまま鳴ります。</p>
 </div>
 
@@ -322,10 +340,16 @@ const swapBox=document.getElementById("swapBox"), swapMsg=document.getElementByI
 let G=null;
 const gameCells=buildBoard(boardEl,i=>humanMove(i));
 function sideName(pl){ return G.mode==="ai" ? (pl===G.humanSide?"あなた":"AI") : (pl===1?G.names[1]:G.names[-1]); }
+function gameCanPlay(i){ return !!(G&&!G.over&&!G.awaitingSwap&&(G.mode==="2p"||G.turn===G.humanSide)&&G.bd[i]===0); }
+window.__ffTap=i=>humanMove(i);
+window.__ffState=()=>({turn:G?G.turn:1,canPlay:gameCanPlay});
+window.__ffRefresh=()=>{ if(G) renderGame({}); };
 function renderGame(anim={}){
   const clickableSet=new Set();
   if(G&&!G.over&&!G.awaitingSwap&&(G.mode==="2p"||G.turn===G.humanSide)) empties(G.bd).forEach(m=>clickableSet.add(m));
-  const p=renderBoard(boardEl,gameCells,G.bd,{clickable:i=>clickableSet.has(i),placed:anim.placed??-1,flips:anim.flips||[],lastIdx:anim.placed??-1,ghostTurn:G.turn});
+  let p;
+  if(window.FF3D_OK){ p=window.FF3D.sync(G.bd,{placed:anim.placed??-1,flips:anim.flips||[],ghostTurn:G.turn,canPlay:gameCanPlay}); }
+  else p=renderBoard(boardEl,gameCells,G.bd,{clickable:i=>clickableSet.has(i),placed:anim.placed??-1,flips:anim.flips||[],lastIdx:anim.placed??-1,ghostTurn:G.turn});
   const nb=G.bd.filter(v=>v===1).length, nw=G.bd.filter(v=>v===-1).length;
   scoreEl.textContent=`黒 ${nb} ： 白 ${nw}（残り ${25-nb-nw} 手）`;
   if(G.over){ statusEl.textContent=`対局終了：黒 ${nb} − 白 ${nw} で ${nb>nw?"黒（"+sideName(1)+"）":"白（"+sideName(-1)+"）"} の勝ちです。`; }
@@ -361,7 +385,7 @@ function aiMoveByDiff(bd,pl){ const es=empties(bd);
   return aiMove(bd,pl); }
 function aiTurn(){ if(!G||G.over)return; const m=aiMoveByDiff(G.bd,G.turn); if(m>=0)doMove(m); }
 document.querySelectorAll(".diff").forEach(b=>b.addEventListener("click",()=>{ DIFF=b.dataset.d; document.querySelectorAll(".diff").forEach(x=>x.classList.toggle("on",x===b)); }));
-document.querySelectorAll(".skin").forEach(b=>b.addEventListener("click",()=>{ document.querySelectorAll(".skin").forEach(x=>x.classList.toggle("on",x===b)); document.querySelectorAll(".board").forEach(el=>el.classList.toggle("crest",b.dataset.s==="crest")); }));
+document.querySelectorAll(".skin").forEach(b=>b.addEventListener("click",()=>{ document.querySelectorAll(".skin").forEach(x=>x.classList.toggle("on",x===b)); document.querySelectorAll(".board").forEach(el=>el.classList.toggle("crest",b.dataset.s==="crest")); if(window.FF3D) window.FF3D.setSkin(b.dataset.s); }));
 function newGame(mode){
   G={bd:Array(25).fill(0),turn:1,mode:mode||(G?G.mode:"ai"),humanSide:1,moves:0,over:false,awaitingSwap:false,swapDone:false,names:{1:"プレイヤーA","-1":"プレイヤーB"}};
   swapBox.style.display="none";
@@ -457,6 +481,133 @@ fetch("book.json").then(r=>r.json()).then(b=>{
 }).catch(()=>{ document.getElementById("bookTables").innerHTML="<p class='note'>定跡データ（book.json）を読み込めませんでした。</p>"; });
 
 newGame("ai");
+</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const wrap=document.getElementById('board3dWrap');
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let renderer=null;
+try{ renderer=new THREE.WebGLRenderer({antialias:true}); }catch(e){ renderer=null; }
+if(renderer){
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+  wrap.appendChild(renderer.domElement);
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x241a10);
+  const pmrem=new THREE.PMREMGenerator(renderer);
+  scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+  const camera=new THREE.PerspectiveCamera(36,1,0.1,100);
+  camera.position.set(0,5.6,3.55); camera.lookAt(0,0,0.15);
+  const key=new THREE.DirectionalLight(0xfff2dd,1.6);
+  key.position.set(3.2,6,2.2); key.castShadow=true;
+  key.shadow.mapSize.set(2048,2048);
+  key.shadow.camera.left=-3.6; key.shadow.camera.right=3.6; key.shadow.camera.top=3.6; key.shadow.camera.bottom=-3.6; key.shadow.camera.near=1; key.shadow.camera.far=16;
+  key.shadow.bias=-0.0004; key.shadow.normalBias=0.02;
+  scene.add(key); scene.add(new THREE.AmbientLight(0xffe9c4,0.25));
+  const cv=document.createElement('canvas'); cv.width=cv.height=1024; const cx=cv.getContext('2d');
+  cx.fillStyle='#b57a38'; cx.fillRect(0,0,1024,1024);
+  const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  function drawGrid(){ const s=1024/5;
+    for(let r=0;r<5;r++)for(let c=0;c<5;c++){ cx.fillStyle=(r+c)%2===0?'rgba(255,240,200,0.05)':'rgba(60,30,0,0.05)'; cx.fillRect(c*s,r*s,s,s); }
+    cx.strokeStyle='rgba(52,28,0,0.6)'; cx.lineWidth=7;
+    for(let k=0;k<=5;k++){ cx.beginPath(); cx.moveTo(k*s,0); cx.lineTo(k*s,1024); cx.stroke(); cx.beginPath(); cx.moveTo(0,k*s); cx.lineTo(1024,k*s); cx.stroke(); }
+    cx.strokeStyle='rgba(255,235,190,0.35)'; cx.lineWidth=2;
+    for(let k=0;k<=5;k++){ cx.beginPath(); cx.moveTo(k*s+5,0); cx.lineTo(k*s+5,1024); cx.stroke(); cx.beginPath(); cx.moveTo(0,k*s+5); cx.lineTo(1024,k*s+5); cx.stroke(); } }
+  drawGrid();
+  const img=new Image(); img.onload=()=>{ cx.drawImage(img,0,0,1024,1024); drawGrid(); tex.needsUpdate=true; }; img.src='assets/board.webp';
+  const topMat=new THREE.MeshStandardMaterial({map:tex,roughness:0.55});
+  const sideMat=new THREE.MeshStandardMaterial({color:0x6e4520,roughness:0.8});
+  const boardMesh=new THREE.Mesh(new THREE.BoxGeometry(5.3,0.22,5.3),[sideMat,sideMat,topMat,sideMat,sideMat,sideMat]);
+  boardMesh.position.y=-0.11; boardMesh.receiveShadow=true; scene.add(boardMesh);
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(5.7,0.14,5.7),new THREE.MeshStandardMaterial({color:0x4a2d12,roughness:0.85}));
+  frame.position.y=-0.26; scene.add(frame);
+  const matBlack=new THREE.MeshPhysicalMaterial({color:0x131316,roughness:0.34,clearcoat:1.0,clearcoatRoughness:0.14,envMapIntensity:1.1});
+  const matWhite=new THREE.MeshPhysicalMaterial({color:0xf6f1e6,roughness:0.30,clearcoat:0.9,clearcoatRoughness:0.20,envMapIntensity:0.95});
+  const matGold=new THREE.MeshStandardMaterial({color:0xd8a441,metalness:0.9,roughness:0.32});
+  const matDarkStar=new THREE.MeshStandardMaterial({color:0x23242a,metalness:0.2,roughness:0.5});
+  const H=0.065,B=0.035,R=0.42;
+  function halfGeo(sign){ const pts=[]; const P=(r,y)=>pts.push(new THREE.Vector2(r,y));
+    P(0,0); P(R,0); P(R,H-B); P(R-B,H); P(0.30,H-0.010); P(0.12,H-0.016); P(0,H-0.018);
+    const g=new THREE.LatheGeometry(pts,56); if(sign<0) g.scale(1,-1,1); return g; }
+  const geoTop=halfGeo(1), geoBot=halfGeo(-1);
+  function starGeo(){ const sh=new THREE.Shape(); const pts=[];
+    for(let k=0;k<8;k++){ const a=k*Math.PI/4-Math.PI/2; const rad=k%2===0?0.16:0.055; pts.push([Math.cos(a)*rad,Math.sin(a)*rad]); }
+    sh.moveTo(pts[0][0],pts[0][1]); for(let k=1;k<8;k++) sh.lineTo(pts[k][0],pts[k][1]); sh.closePath();
+    const g=new THREE.ExtrudeGeometry(sh,{depth:0.008,bevelEnabled:false}); g.rotateX(-Math.PI/2); return g; }
+  const sGeo=starGeo();
+  let skin='plain';
+  function makeDisc(up,ghost){
+    const g=new THREE.Group();
+    const mT=ghost?new THREE.MeshPhysicalMaterial({color:up===1?0x131316:0xf6f1e6,roughness:0.35,transparent:true,opacity:0.35,depthWrite:false}):(up===1?matBlack:matWhite);
+    const mB=ghost?mT:(up===1?matWhite:matBlack);
+    const top=new THREE.Mesh(geoTop,mT); top.castShadow=!ghost;
+    const bot=new THREE.Mesh(geoBot,mB); bot.castShadow=!ghost;
+    const sTop=new THREE.Mesh(sGeo,up===1?matGold:matDarkStar); sTop.position.y=H-0.017; sTop.visible=false;
+    const sBot=new THREE.Mesh(sGeo,up===1?matDarkStar:matGold); sBot.position.y=-(H-0.017); sBot.rotation.x=Math.PI; sBot.visible=false;
+    g.add(top,bot,sTop,sBot); g.userData={up,stars:[sTop,sBot],topMesh:top,botMesh:bot};
+    return g;
+  }
+  const discs=Array(25).fill(null);
+  const cellPos=i=>({x:(i%5)-2, z:((i/5)|0)-2});
+  const tweens=[]; let dirty=true;
+  const easeInOutCubic=t=>t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  const easeOutCubic=t=>1-Math.pow(1-t,3);
+  function addTween(delay,dur,fn,done){ tweens.push({start:performance.now()+delay,dur:Math.max(dur,1),fn,done}); dirty=true; }
+  function flipDisc(d,delay,dur){
+    const base=d.rotation.x, y0=H;
+    addTween(delay,dur,k=>{ const e=easeInOutCubic(k); d.rotation.x=base+Math.PI*e; d.position.y=y0+Math.sin(Math.PI*e)*0.34; },
+    ()=>{ d.rotation.x=base+Math.PI; d.position.y=y0; d.userData.up=-d.userData.up;
+      addTween(0,130,k=>{ d.scale.y=1-0.1*Math.sin(Math.PI*k); },()=>{ d.scale.y=1; }); });
+  }
+  function dropDisc(d,dur){
+    addTween(0,dur,k=>{ const e=easeOutCubic(k); d.position.y=H+0.55*(1-e); },
+    ()=>{ d.position.y=H; addTween(0,130,k=>{ d.scale.y=1-0.08*Math.sin(Math.PI*k); },()=>{ d.scale.y=1; }); });
+  }
+  function sync(board,opts){
+    const flips=opts.flips||[];
+    const raw=flips.length?130+480+(flips.length-1)*55:260;
+    let scale=raw>950?950/raw:1; if(RM) scale=0.02;
+    flips.forEach((f,k)=>{ const d=discs[f]; if(d&&d.userData.up!==board[f]) flipDisc(d,(130+k*55)*scale,480*scale); });
+    for(let i=0;i<25;i++){ const v=board[i]; let d=discs[i];
+      if(v===0&&d){ scene.remove(d); discs[i]=null; }
+      else if(v!==0&&!d){ d=makeDisc(v,false); const p=cellPos(i); d.position.set(p.x,H,p.z); scene.add(d); discs[i]=d;
+        if(i===opts.placed) dropDisc(d,240*scale); }
+      else if(v!==0&&d&&d.userData.up!==v&&!flips.includes(i)){ flipDisc(d,0,480*scale); }
+    }
+    ghost.visible=false; dirty=true;
+    return {dur:Math.round(480*scale),stag:Math.round(55*scale)};
+  }
+  const ghost=makeDisc(1,true); ghost.visible=false; scene.add(ghost);
+  function setGhostTurn(t){ const u=ghost.userData; const mT=t===1?0x131316:0xf6f1e6;
+    u.topMesh.material.color.setHex(mT); u.botMesh.material.color.setHex(mT===0x131316?0xf6f1e6:0x131316); }
+  const ray=new THREE.Raycaster(); const plane=new THREE.Plane(new THREE.Vector3(0,1,0),-H); const hit=new THREE.Vector3();
+  function pick(ev){ const r=renderer.domElement.getBoundingClientRect();
+    const nx=((ev.clientX-r.left)/r.width)*2-1, ny=-((ev.clientY-r.top)/r.height)*2+1;
+    ray.setFromCamera({x:nx,y:ny},camera);
+    if(!ray.ray.intersectPlane(plane,hit)) return -1;
+    const c=Math.floor(hit.x+2.5), rr=Math.floor(hit.z+2.5);
+    if(c<0||c>4||rr<0||rr>4) return -1; return rr*5+c; }
+  renderer.domElement.addEventListener('pointermove',ev=>{ const i=pick(ev); const st=window.__ffState?window.__ffState():{turn:1,canPlay:()=>false};
+    if(i>=0&&st.canPlay(i)){ const p=cellPos(i); ghost.position.set(p.x,H,p.z); setGhostTurn(st.turn); ghost.visible=true; }
+    else ghost.visible=false; dirty=true; });
+  renderer.domElement.addEventListener('pointerdown',ev=>{ const i=pick(ev); if(i>=0&&window.__ffTap) window.__ffTap(i); });
+  function resize(){ const w=wrap.clientWidth||500; renderer.setSize(w,w,false); camera.aspect=1; camera.updateProjectionMatrix(); dirty=true; }
+  new ResizeObserver(resize).observe(wrap);
+  wrap.style.display='block'; document.getElementById('board').style.display='none';
+  window.FF3D={ sync, setSkin:s=>{ skin=s; for(const d of discs) if(d) for(const st of d.userData.stars) st.visible=(s==='crest'); } };
+  window.FF3D_OK=true;
+  resize();
+  (function loop(){ requestAnimationFrame(loop);
+    const now=performance.now();
+    for(let i=tweens.length-1;i>=0;i--){ const t=tweens[i]; if(now<t.start) continue;
+      const k=Math.min((now-t.start)/t.dur,1); t.fn(k); dirty=true;
+      if(k>=1){ tweens.splice(i,1); if(t.done) t.done(); } }
+    if(dirty){ renderer.render(scene,camera); dirty=false; }
+  })();
+  if(window.__ffRefresh) window.__ffRefresh();
+}
 </script>
 </body>
 </html>
