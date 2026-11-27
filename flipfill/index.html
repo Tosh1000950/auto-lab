@@ -116,6 +116,16 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <div id="anaResult"></div>
 </div>
 
+<h2>詰めFLIPFILL（全12問・証明済み）</h2>
+<div class="card">
+<p>終盤の局面で、<strong>勝てる手がちょうど1つだけ</strong>ある問題集です。それ以外の手は全部負け。完全読みで検証済みなので、答えは「証明」です。注目は、12問中10問で<strong>「いちばん多く返せる手」が罠</strong>になっていること。たくさん返せる手ほど、相手に返しやすい足場を渡してしまう——このゲームの性格が詰め問題にするとよく見えます。</p>
+<div class="controls" id="pzList"></div>
+<div class="status" id="pzStatus">問題を選んでください。すべて黒の手番です。</div>
+<div class="boardWrap"><div class="board small" id="pzBoard"></div></div>
+<div id="pzResult"></div>
+<p class="note" id="pzProgress"></p>
+</div>
+
 <h2>初手マップ（MCTS・対称平均）</h2>
 <div class="card">
 <p>初手25マスすべての黒勝率です。単独マスの推定は対称マス同士でも±1〜2ptばらつくため、回転・反転で重なるマス（対称クラス）は<strong>訪問数で重み付けして平均</strong>した値を表示しています（生データはbook.jsonに収録）。</p>
@@ -392,6 +402,38 @@ document.getElementById("anaRun").addEventListener("click",()=>{
   },30);
 });
 renderAna({});
+
+/* ===== 詰めFLIPFILL ===== */
+const pzEl=document.getElementById("pzBoard");
+const pzStatus=document.getElementById("pzStatus"), pzResult=document.getElementById("pzResult"), pzProgress=document.getElementById("pzProgress");
+let PZ=null, pzCur=null, pzLocked=false, pzTries=0;
+let pzSolved=new Set(JSON.parse(localStorage.getItem("flipfill_solved")||"[]"));
+const pzCells=buildBoard(pzEl,i=>{
+  if(!pzCur||pzLocked)return; if(pzCur.board[i]!==0)return; audioInit();
+  pzTries++;
+  if(i===pzCur.best_move){
+    pzLocked=true; pzSolved.add(pzCur.id); localStorage.setItem("flipfill_solved",JSON.stringify([...pzSolved]));
+    const bd=pzCur.board.slice(); const flips=flipsOf(bd,i,1).slice().sort((a,b)=>a-b); applyInPlace(bd,i,1);
+    const p=renderBoard(pzEl,pzCells,bd,{clickable:()=>false,placed:i,flips,ghostTurn:0}); playMoveSounds(flips,p); sWin();
+    pzStatus.textContent=`第${pzCur.id}問（${pzCur.tier}）クリア！`;
+    pzResult.innerHTML=`<p><strong>正解：${cellName(pzCur.best_move)}</strong><span class="badge proven">証明済み</span></p><p>この手を打つと、両者最善で最終的に黒が <strong>+${pzCur.best_value}</strong>（石数差）で勝ちます。他の手は全部負けで、次善手でも ${pzCur.second_value} までしか届きません。${pzCur.is_trap?`なお、いちばん多く返せる手は ${cellName(pzCur.greedy_move)} ですが、それだと最終 ${pzCur.greedy_value} で負けです。`:''}（試行 ${pzTries} 回）</p>`;
+    markPzButtons(); syncPzProgress();
+  } else {
+    clack({f:280,gain:0.8,ring:0.05,thump:0.7});
+    pzStatus.textContent=`${cellName(i)} は最善ではありません。その手だと最終的に負けます（完全読みで確認済み）。もう一度考えてみてください。`;
+  }
+});
+function syncPzProgress(){ pzProgress.textContent=PZ?`進捗：${pzSolved.size} / ${PZ.puzzles.length} 問クリア（この端末に保存されます）`:""; }
+function markPzButtons(){ document.querySelectorAll(".pzBtn").forEach(b=>{ const id=+b.dataset.id; b.classList.toggle("on",pzCur&&pzCur.id===id); b.textContent=`第${id}問${pzSolved.has(id)?" ✓":""}`; }); }
+function loadPuzzle(p){ pzCur=p; pzLocked=false; pzTries=0;
+  renderBoard(pzEl,pzCells,p.board,{clickable:i=>p.board[i]===0,ghostTurn:1});
+  pzStatus.textContent=`第${p.id}問（${p.tier}・残り${p.empties}手）：黒の手番。勝てる手は1つだけです。`;
+  pzResult.innerHTML=""; markPzButtons(); }
+fetch("puzzles.json").then(r=>r.json()).then(d=>{ PZ=d; const list=document.getElementById("pzList");
+  for(const p of d.puzzles){ const b=document.createElement("button"); b.className="act pzBtn"; b.dataset.id=p.id; b.textContent=`第${p.id}問`; b.addEventListener("click",()=>loadPuzzle(p)); list.appendChild(b); }
+  syncPzProgress(); loadPuzzle(d.puzzles[0]);
+}).catch(()=>{ pzStatus.textContent="問題データ（puzzles.json）を読み込めませんでした。"; });
+renderBoard(pzEl,pzCells,Array(25).fill(0),{clickable:()=>false});
 
 /* ===== ヒートマップと定跡表 ===== */
 function fillHeat(el,vals){ el.innerHTML=""; for(let i=0;i<25;i++){ const d=document.createElement("div"); d.style.background=colorFor(vals[i]); d.style.color=vals[i]>0.712?"#fff":"#123"; d.textContent=vals[i].toFixed(3); el.appendChild(d);} }
