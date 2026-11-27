@@ -1,312 +1,373 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<!-- Google tag (gtag.js) -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLIPFILL（フリップフィル）| 5×5反転ゲームの定跡書</title>
+<meta name="description" content="置いた石の上下左右の敵石が全部ひっくり返る、5×5の新しい反転ゲーム。20万回のランダム対戦とMCTSで作った初手マップ＆応手表、空き10マス以下の完全解析つき。">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZY9E6YLPBM"></script>
-<script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){ dataLayer.push(arguments); }
-gtag('js', new Date());
-gtag('config', 'G-ZY9E6YLPBM');
-</script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FLIPFILL（フリップフィル）| Auto Lab</title>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-ZY9E6YLPBM');</script>
 <style>
-  body { font-family: sans-serif; background:#14161c; color:#e8eaf0; margin:0; padding:16px; }
-  main { max-width: 780px; margin: 0 auto; }
-  h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; margin-top: 2em; }
-  .board { display:grid; grid-template-columns: repeat(5, 56px); gap:6px; margin: 12px 0; }
-  .cell { width:56px; height:56px; border-radius:10px; border:1px solid #3a3f4f; background:#222633; cursor:pointer; font-size:1.25rem; display:flex; align-items:center; justify-content:center; color:#fff; padding:0; }
-  .cell.black { background:#05070c; color:#f5f6fa; border:2px solid #565e75; border-radius:50%; }
-  .cell.white { background:#e8eaf0; color:#14161c; border:2px solid #e8eaf0; border-radius:50%; }
-  .cell.best { outline:3px solid #ffd34d; outline-offset:-3px; }
-  .cell:disabled { cursor:default; }
-  .heat { display:grid; grid-template-columns: repeat(5, 56px); gap:6px; }
-  .hcell { width:56px; height:56px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.78rem; color:#14161c; font-weight:bold; }
-  button { background:#39415c; color:#fff; border:none; padding:8px 14px; border-radius:8px; cursor:pointer; margin:4px 8px 4px 0; }
-  button:disabled { opacity:.45; cursor:default; }
-  select { background:#222633; color:#e8eaf0; padding:6px; border-radius:6px; }
-  .note { color:#aab; font-size:.9rem; line-height:1.7; }
-  .panel { background:#1b1f2a; border:1px solid #2c3244; border-radius:10px; padding:12px 16px; margin:12px 0; }
-  table { border-collapse:collapse; font-size:.88rem; }
-  td, th { border:1px solid #2c3244; padding:4px 10px; text-align:left; }
-  a { color:#9fc1ff; }
-  .prov { color:#ffd34d; font-weight:bold; }
-  .stat { color:#9fc1ff; font-weight:bold; }
+:root{--ink:#20242c;--paper:#faf6ee;--accent:#b3541e}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.75}
+main{max-width:880px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:2rem;margin:0 0 4px;letter-spacing:.04em;text-align:center}
+.sub{text-align:center;color:#5a5148;margin:0 0 8px}
+h2{font-size:1.25rem;border-left:6px solid var(--accent);padding-left:10px;margin:38px 0 12px}
+h3{font-size:1.05rem;margin:20px 0 8px}
+p{margin:8px 0}
+.card{background:#fff;border:1px solid #e3d9c8;border-radius:12px;padding:18px 20px;margin:14px 0}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:10px 0}
+button.act{font-size:.95rem;padding:8px 16px;border-radius:999px;border:1px solid #c9b896;background:#fff;cursor:pointer}
+button.act.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.act:disabled{opacity:.4;cursor:default}
+.status{font-size:1.05rem;min-height:1.8em;text-align:center}
+.score{text-align:center;color:#5a5148;margin:2px 0 8px}
+/* ===== 木盤と石 ===== */
+.boardWrap{display:flex;justify-content:center;margin:10px 0}
+.board{--flipdur:.2s;width:min(88vmin,500px);aspect-ratio:1/1;display:grid;grid-template-columns:repeat(5,1fr);gap:2%;padding:3.4%;border-radius:16px;perspective:760px;
+ background:
+  repeating-linear-gradient(93deg, rgba(122,72,20,.10) 0 14px, rgba(255,220,160,.05) 14px 29px),
+  repeating-linear-gradient(2deg, rgba(90,50,10,.07) 0 9px, rgba(255,230,180,.04) 9px 23px),
+  linear-gradient(135deg,#cf9250,#b57a38 45%,#9c652b);
+ box-shadow: inset 2px 2px 6px rgba(255,240,200,.5), inset -3px -3px 9px rgba(60,30,0,.5), 0 18px 42px rgba(60,35,0,.35)}
+.board.small{width:min(80vmin,330px)}
+.cell{position:relative;border:1px solid rgba(70,40,5,.4);border-radius:10px;background:linear-gradient(145deg, rgba(255,226,170,.16), rgba(80,45,5,.10));cursor:pointer;padding:0;box-shadow: inset 1px 1px 3px rgba(255,240,205,.35), inset -1px -1px 3px rgba(60,30,0,.35)}
+.cell:disabled{cursor:default}
+.cell.last::after{content:"";position:absolute;right:5px;top:5px;width:9px;height:9px;border-radius:50%;background:#ffcf3f;box-shadow:0 0 5px rgba(255,190,0,.9);z-index:3}
+.cell.best{outline:3px solid #ffd166;outline-offset:-3px}
+.wrap{position:absolute;inset:5.5%}
+.cell.placed .wrap{animation:drop .16s ease-out}
+@keyframes drop{0%{transform:translateY(-11px) scale(1.13)}100%{transform:translateY(0) scale(1)}}
+.disc{position:absolute;inset:0;transform-style:preserve-3d;transition:transform var(--flipdur) ease-out}
+.disc.w{transform:rotateY(180deg)}
+.disc.hide{display:none}
+.face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.face.b{background:radial-gradient(circle at 34% 30%, #6d727f, #22232a 52%, #050506 80%);box-shadow: inset -3px -4px 8px rgba(0,0,0,.85), inset 2px 3px 6px rgba(255,255,255,.28), 0 3px 5px rgba(40,20,0,.5)}
+.face.b::after{content:"";position:absolute;left:25%;top:16%;width:28%;height:17%;border-radius:50%;background:rgba(255,255,255,.55);filter:blur(2px);transform:rotate(-24deg)}
+.face.w{background:radial-gradient(circle at 34% 30%, #ffffff, #eae5d9 52%, #b3ab99 82%);box-shadow: inset -3px -4px 8px rgba(120,110,90,.5), inset 2px 3px 6px rgba(255,255,255,.95), 0 3px 5px rgba(40,20,0,.45);transform:rotateY(180deg)}
+.face.w::after{content:"";position:absolute;left:25%;top:16%;width:28%;height:17%;border-radius:50%;background:rgba(255,255,255,.75);filter:blur(2px);transform:rotate(-24deg)}
+.ghost{position:absolute;inset:5.5%;border-radius:50%;opacity:0;pointer-events:none;transition:opacity .12s}
+.ghost.gb{background:radial-gradient(circle at 34% 30%, #6d727f, #22232a 60%, #050506)}
+.ghost.gw{background:radial-gradient(circle at 34% 30%, #ffffff, #eae5d9 60%, #b3ab99)}
+.cell.emptycell:hover .ghost{opacity:.38}
+/* ===== ヒートマップ ===== */
+.heatWrap{display:flex;justify-content:center}
+.heat{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;width:min(80vmin,340px)}
+.heat div{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:.8rem;font-weight:700;color:#123}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{border:1px solid #e3d9c8;padding:6px 9px;text-align:left}
+th{background:#f3ecdd}
+.badge{display:inline-block;font-size:.75rem;padding:1px 9px;border-radius:999px;vertical-align:middle;margin-left:6px}
+.proven{background:#1d7a3a;color:#fff}
+.estim{background:#8a6d1a;color:#fff}
+.note{font-size:.88rem;color:#5a5148}
+footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
+@media (prefers-reduced-motion: reduce){.disc{transition:none}.cell.placed .wrap{animation:none}.ghost{transition:none}}
 </style>
 </head>
 <body>
 <main>
 <h1>FLIPFILL（フリップフィル）</h1>
-<p class="note">Auto Lab 第5弾（オートラボ2）。2026-11-27 に設計と事前計算、11-28 に定跡本 v1・解析盤・スワップ実装を追加した、新作の抽象戦略ゲームです。</p>
-
-<h2>ルール（3行）</h2>
-<p class="note">
-5×5の盤に、先手（黒石）と後手（白石）が交互に自分の石を1つ置きます。<br>
-置いた石に上下左右で隣り合う敵の石は、すべて自分の色にひっくり返ります（斜めは対象外、連鎖なし）。<br>
-盤が全部埋まったら（25手）石の多い方の勝ち。合計25は奇数なので引き分けはありません。<br>
-バランス調整（パイ／スワップ）：先手の1手目の後、後手は色を交換できます。初手が強すぎると、そのまま相手のものになる仕組みです。
-</p>
+<p class="sub">置くと、隣の敵石が全部ひっくり返る。5×5・全25手で盤が埋まる、新しい反転ゲームの定跡書。<br>2026年11月27日夜に考案、Colabで20万回対戦を回して初手の全マップを作り、28日にMCTSで応手表と解析盤、<strong>本日v3で木盤・石の質感、3D反転アニメーションと打石音</strong>を追加した実験作。</p>
 
 <h2>遊ぶ</h2>
-<p>
-モード：
-<select id="mode">
-  <option value="ai">AIと対戦（スワップあり）</option>
-  <option value="2p">2人対戦（スワップあり）</option>
-</select>
-<button id="reset">最初から</button>
-<button id="swapBtn" disabled>後手：スワップする（色を交換）</button>
-<button id="noSwapBtn" disabled>後手：スワップしない（このまま続ける）</button>
-</p>
-<div id="status">読み込み中…</div>
-<div class="board" id="board"></div>
-<p class="note">AIは序盤は貪欲手＋定跡データ、終盤（空き10以下）は厳密ソルバーで証明された最善手を打ちます。
-AIと対戦モードのスワップ判定：あなたの初手のMCTS勝率（先手視点）が 0.718 以上の「強い初手」だった場合、AIがスワップを宣言してその手と先手を引き継ぎ、あなたは後手になります。</p>
+<div class="card">
+<div class="controls">
+<button class="act on" id="modeAI">AIと対戦</button>
+<button class="act" id="mode2P">2人対戦</button>
+<button class="act" id="newGame">はじめから</button>
+<button class="act" id="soundBtn">🔊 音あり</button>
+</div>
+<div class="status" id="status"></div>
+<div class="score" id="score"></div>
+<div class="controls" id="swapBox" style="display:none">
+<span id="swapMsg"></span>
+<button class="act" id="swapYes">スワップする（先手と石を交換）</button>
+<button class="act" id="swapNo">スワップしない</button>
+</div>
+<div class="boardWrap"><div class="board" id="board"></div></div>
+<p class="note">ルール：空きマスに自分の石を1つ置くと、上下左右に隣り合う敵石が<strong>すべて</strong>自分の色にひっくり返ります（斜めは対象外、連鎖なし）。25手で盤が埋まったら、石の多い方の勝ち。合計25は奇数なので引き分けはありません。先手が強すぎるため、2手目側が最初の1手を見て「スワップ（先手と交代）」できるパイルールを採用。AIは序盤は貪欲、中盤以降は貪欲＋完全読み（空き10以下）で打ちます。石を置く音と反転音は、Web Audioでその場で合成しています（音源ファイルなし）。</p>
+</div>
 
-<h2>解析盤（神の視点）</h2>
-<p class="note">自由に石を置いて局面を作り、「解析する」を押してください。空き10以下なら<span class="prov">証明済み</span>（全探索の厳密解）、
-それより序盤なら<span class="stat">統計推定</span>（ブラウザ内MCTS 800回の推定）と表示を分けます。証明と推定を混ぜないのがこの作品の決まりです。</p>
-<div class="board" id="aboard"></div>
-<button id="aUndo">1手戻す</button>
-<button id="aReset">解析盤を空にする</button>
-<button id="aRun">解析する</button>
-<div class="panel" id="aOut">まだ解析していません。</div>
+<h2>解析盤（証明済み／統計推定を分けて表示）</h2>
+<div class="card">
+<p>好きな局面を作って「解析する」を押すと、空きマスが10以下の局面は<strong>完全読みで証明済みの結論</strong>を、それより前はMCTSの<strong>統計推定</strong>を表示します。両者は混ぜず、必ずラベルで区別します。</p>
+<div class="controls">
+<button class="act" id="anaUndo">1手戻す</button>
+<button class="act" id="anaReset">リセット</button>
+<button class="act" id="anaRun">解析する</button>
+</div>
+<div class="status" id="anaStatus">黒（先手）の手番です。空きマスをタップして交互に置いてください。</div>
+<div class="boardWrap"><div class="board small" id="anaBoard"></div></div>
+<div id="anaResult"></div>
+</div>
 
-<h2>定跡本 v1（MCTS精密化、2026-11-28）</h2>
-<p class="note">序盤をMCTS（モンテカルロ木探索）で精密化しました。ルートは60,000回、各初手への応手は40,000回の探索です。勝率はすべて先手（黒）視点の<span class="stat">統計推定</span>です。</p>
-<div class="heat" id="mctsHeat"></div>
-<p class="note">初手マップ（MCTS勝率、%。盤の対称性で同じクラスになるマスは訪問数で重み付け平均して表示）。隅のクラスが最高の72.4%、他は70.4〜71.4%の範囲です。幅は約2ポイントと小さく、「初手の場所より先手であること」が支配的、という v1 の結論は変わりませんでした。個別マスの生の値は探索ノイズを含むため、クラス平均を併記しています（詳細は book.json）。</p>
+<h2>初手マップ（MCTS・対称平均）</h2>
+<div class="card">
+<p>初手25マスすべての黒勝率です。単独マスの推定は対称マス同士でも±1〜2ptばらつくため、回転・反転で重なるマス（対称クラス）は<strong>訪問数で重み付けして平均</strong>した値を表示しています（生データはbook.jsonに収録）。</p>
+<div class="heatWrap"><div class="heat" id="heat"></div></div>
+<p class="note" id="heatNote"></p>
+</div>
+
+<h2>定跡：初手への応手表（MCTS）</h2>
+<div class="card">
+<p>初手は対称性で6種類に代表させ、各6万〜10万回の探索で「白の応手ベスト5」を出しました。数値はその応手後の黒勝率（MCTS推定）で、低いほど白に良い応手です。<strong>証明ではなく傾向</strong>として読んでください。</p>
 <div id="bookTables"></div>
-<p class="note">読み取れた傾向：後手の最善応手は、先手勝率を約72%から69%前後まで下げます。その応手は「隅の石に隣接してすぐ返す手」ではなく、離れた場所に打つ手が上位でした（MCTSの傾向であり、証明ではありません）。中央開きへの応手が最も先手勝率を下げました（68.8%）。</p>
+</div>
 
-<h2>事前計算 v1（2026-11-27、Google Colab）</h2>
-<p class="note">
-ランダムプレイアウト各初手20万局では、先手勝率は全初手で 0.715〜0.723（平均0.719）とほぼ一定でした。
-厳密ソルバーは空き10の局面5件を1.5〜4.4秒で証明完了（Colab CPU実測）。証明の実用範囲は空き10前後が目安です（空き12の難しい局面ではローカル実測90秒）。
-</p>
+<h2>分かったこと</h2>
+<div class="card">
+<h3>初手マップ（Colab・ランダム対戦 20万回×25マス）</h3>
+<div class="heatWrap"><div class="heat" id="heatRand"></div></div>
+<p>ランダム対戦では初手25マスすべての先手勝率が <strong>0.715〜0.723</strong> と、ほぼ完全に平らでした。つまりこのゲームの先手有利は「場所」ではなく「手番の構造」そのもの（先手が25手目＝最後の1手も打てる）から来ています。MCTSで強さを混ぜても範囲は約2pt（隅0.724〜内側角0.704）で、結論は変わりませんでした。</p>
+<h3>応手で差がつく</h3>
+<p>一方、白の応手次第で黒勝率は0.72→0.69前後まで下がります。面白いのは、強い応手が「隣に行って取り返す」ではなく<strong>離れたマス</strong>に多いこと。中央開き（12）への応手では0.688まで下がり、初手の中でいちばん応手が効きました。「置いた石の隣は、次に自分が置けばまた全部返せる」構造なので、隣接の応酬は先手に有利なまま、という読みと一致します。</p>
+<h3>証明できる範囲</h3>
+<p>空き10マス以下なら完全読みが現実的（Colab CPUで1.5〜4.4秒／局面）で、解析盤とAIの終盤はこの証明済みエンジンで動いています。空き12では約90秒（ローカル実測）かかり、証明範囲の境界は10〜12の間にあります。</p>
+</div>
 
-<h2>先行例との差（車輪の再発明チェック）</h2>
-<p class="note">
-「自作ゲーム＋AI自己対戦＋ブラウザ対戦」は2026年10月に Crosshair という先行作があります。本作は対戦そのものではなく、
-①全初手の勝率マップと応手表、②終盤の証明つき解析、③読める定跡本、を本体にする点で分けています。
-祖先ゲームとの差：リバーシは「挟んだ石だけ・直線」ですが本作は「隣接すべて・配置のみ」。アタックスにある移動・複製はありません。
-</p>
-<p class="note">データ：<a href="data.json">data.json</a>（初手マップ v1）／ <a href="book.json">book.json</a>（定跡本 v1）／ 計算ノートブックは Google Colab 上に保存済み。</p>
+<h2>音と動きの設計（v3）</h2>
+<div class="card">
+<p>「現実の対局の気持ちよさ」をWebで再現するために、ボードゲームのゲームフィール（演出の気持ちよさ）を深度検索してから実装しました。要点は3つです。</p>
+<p><strong>反転は3Dで、1石200ms・近い順にずらす。</strong>実在のリバーシ実装の実測値（180〜200ms）に合わせ、置いた石に近い順に約45msずつ遅らせてひっくり返します。速く打ち続けると自動で短縮され、入力をアニメーションで待たせることはありません。</p>
+<p><strong>音は「パチッ」を3層で合成。</strong>碁石が木盤に当たる音の正体は、2msの高音の当たる音＋木の胴鳴り（70ms）＋盤の低い響き（50ms）。公開レシピの木の共鳴比（1 : 1.73 : 2.33 : 3.91）でWeb Audio合成し、反転音は少し小さく・高く・短く、連なるほど音程を上げています。毎回ピッチを僅かに揺らすので、同じ音の連打で疲れません。</p>
+<p><strong>GPU生成は、あえて不採用。</strong>調べた結論では、AI音声生成は「鋭い一撃の音」が最も苦手で、生成しても結局トリミングと選別の手間は消えません。画像の木目テクスチャも、1マス約56pxの表示では細部が潰れて見分けがつかず、CSSのグラデーションで十分でした。容量の余裕は「重さ」ではなく「確かさ」に使うのが正解、というのが今回の学びです。音の方式としてはCC0の実録サンプルが文献上の1位で、合成は僅差の2位。実録を足すハイブリッド化は今後の候補です。</p>
+</div>
+
+<h2>作り方と検証</h2>
+<div class="card">
+<p>エンジン（Python）と完全読みソルバーでルールを検証（ランダム2,000対局すべて25手で終了・引き分けなし）→ Colabで大規模プレイアウト → ローカルでMCTS探索（初手10万回＋応手各4万回）→ 深度検索で演出パラメータを確定 → 静的ページ化。データ：<a href="data.json">data.json</a>（Colab実測）／<a href="book.json">book.json</a>（MCTS定跡）。Auto Lab 第5弾（2026-11-27〜28）。</p>
+</div>
+
+<footer>FLIPFILL — Auto Lab #5 / 作：Tosh1</footer>
 </main>
 <script>
 "use strict";
-const N=5, C=25;
-const NB=[]; for(let i=0;i<C;i++){const r=Math.floor(i/N),c=i%N;const a=[];if(r>0)a.push(i-N);if(r<N-1)a.push(i+N);if(c>0)a.push(i-1);if(c<N-1)a.push(i+1);NB.push(a);}
-const cellName=i=>`${Math.floor(i/N)+1}行${(i%N)+1}列`;
-function applyB(b,m,p){const nb=b.slice();nb[m]=p;for(const j of NB[m]) if(nb[j]===-p) nb[j]=p;return nb;}
-function legalB(b){const a=[];for(let i=0;i<C;i++) if(b[i]===0)a.push(i);return a;}
-function winnerB(b){let bc=0,wc=0;for(const v of b){if(v===1)bc++;else if(v===-1)wc++;}return bc>wc?1:-1;}
+const N=5, CELLS=25;
+const NEI=[]; for(let i=0;i<CELLS;i++){const r=(i/5)|0,c=i%5,ns=[];if(r>0)ns.push(i-5);if(r<4)ns.push(i+5);if(c>0)ns.push(i-1);if(c<4)ns.push(i+1);NEI.push(ns);}
+function flipsOf(bd,move,pl){return NEI[move].filter(j=>bd[j]===-pl);}
+function applyInPlace(bd,move,pl){bd[move]=pl;for(const j of flipsOf(bd,move,pl))bd[j]=pl;}
+function empties(bd){const e=[];for(let i=0;i<CELLS;i++)if(bd[i]===0)e.push(i);return e;}
+function greedyMove(bd,pl){let best=-1,bs=-1e9;for(const m of empties(bd)){const s=flipsOf(bd,m,pl).length*2+(bd[m]===0?0:0)+((m===0||m===4||m===20||m===24)?0.5:0);if(s>bs){bs=s;best=m;}}return best;}
+const TT=new Map();
+function solve(bd,pl){ // 空き10以下専用：手番側の最終石数差
+  const key=bd.join(",")+":"+pl; const hit=TT.get(key); if(hit!==undefined)return hit;
+  const es=empties(bd); let val;
+  if(es.length===0){val=bd.reduce((a,v)=>a+(v===pl?1:v===-pl?-1:0),0);}
+  else{let best=-1e9;for(const m of es){const nb=bd.slice();applyInPlace(nb,m,pl);const v=-solve(nb,-pl);if(v>best)best=v;}val=best;}
+  TT.set(key,val); return val;
+}
+function bestMoveExact(bd,pl){let best=-1,bv=-1e9;for(const m of empties(bd)){const nb=bd.slice();applyInPlace(nb,m,pl);const v=-solve(nb,-pl);if(v>bv){bv=v;best=m;}}return{move:best,val:bv};}
+function aiMove(bd,pl){const es=empties(bd);if(es.length<=10)return bestMoveExact(bd,pl).move;if(es.length<=12&&Math.random()<0.5)return bestMoveExact(bd,pl).move;return greedyMove(bd,pl);}
+function playout(bd,pl){const b=bd.slice();let p=pl;while(true){const es=empties(b);if(!es.length)break;const m=Math.random()<0.35?greedyMove(b,p):es[(Math.random()*es.length)|0];applyInPlace(b,m,p);p=-p;}return b.reduce((a,v)=>a+v,0);}
+function mctsLite(bd,pl,sims){const es=empties(bd);const stats=new Map(es.map(m=>[m,{n:0,w:0}]));
+  for(let s=0;s<sims;s++){const m=es[(Math.random()*es.length)|0];const nb=bd.slice();applyInPlace(nb,m,pl);const diff=playout(nb,-pl);const st=stats.get(m);st.n++;st.w+=(pl===1?diff:-diff)>0?1:0;}
+  let best=-1,bw=-1;const rows=[];for(const [m,st] of stats){const wr=st.w/st.n;rows.push({move:m,wr,n:st.n});if(wr>bw){bw=wr;best=m;}}
+  rows.sort((a,b)=>b.wr-a.wr);return{best,rows};}
+const ROOT_WR={0:0.7238,1:0.7045,2:0.7119,3:0.7045,4:0.7238,5:0.7045,6:0.7037,7:0.7063,8:0.7063,9:0.7045,10:0.7119,11:0.7063,12:0.7135,13:0.7063,14:0.7119,15:0.7045,16:0.7063,17:0.7063,18:0.7037,19:0.7045,20:0.7238,21:0.7045,22:0.7119,23:0.7045,24:0.7238};
+function colorFor(v){const t=(v-0.685)/(0.725-0.685);const r=Math.round(38+ (233-38)*t),g=Math.round(84+(196-84)*t),b=Math.round(124+(106-124)*t);return `rgb(${r},${g},${b})`;}
+function cellName(i){return `${(i/5|0)+1}行${i%5+1}列`;}
 
-/* ---------- exact solver (empties <= 12, node-capped) ---------- */
-function exactSolve(board, player, nodeCap){
-  const tt=new Map(); let nodes=0, capped=false;
-  function solve(b,p,alpha,beta){
-    const legal=legalB(b);
-    if(!legal.length) return winnerB(b);
-    if(++nodes>nodeCap){capped=true;return 0;}
-    const key=b.join(',')+'|'+p;
-    if(tt.has(key)) return tt.get(key);
-    let best=(p===1)?-2:2;
-    for(const m of legal){
-      const v=solve(applyB(b,m,p),-p,alpha,beta);
-      if(capped) return 0;
-      if(p===1){ if(v>best)best=v; if(best>alpha)alpha=best; } else { if(v<best)best=v; if(best<beta)beta=best; }
-      if(alpha>=beta) break;
-    }
-    tt.set(key,best); return best;
+/* ===== 音（Web Audio合成・音源ファイルなし） ===== */
+let AC=null, master=null, noiseBuf=null;
+let muted = localStorage.getItem("flipfill_muted")==="1";
+function audioInit(){
+  if(AC) { if(AC.state==="suspended") AC.resume(); return; }
+  try{
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    const comp=AC.createDynamicsCompressor(); comp.threshold.value=-16; comp.ratio.value=4;
+    master=AC.createGain(); master.gain.value=muted?0:0.5;
+    master.connect(comp); comp.connect(AC.destination);
+    noiseBuf=AC.createBuffer(1, AC.sampleRate*0.5, AC.sampleRate);
+    const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  }catch(e){ AC=null; }
+}
+function noiseHit(t,{type="highpass",freq=2500,q=1,gain=0.5,dur=0.015}={}){
+  const src=AC.createBufferSource(); src.buffer=noiseBuf; src.playbackRate.value=0.9+Math.random()*0.2;
+  const f=AC.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q;
+  const g=AC.createGain(); g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t+dur+0.05);
+}
+function toneHit(t,{f0=600,f1=null,type="sine",gain=0.3,dur=0.07}={}){
+  const o=AC.createOscillator(); o.type=type; o.frequency.setValueAtTime(f0,t);
+  if(f1) o.frequency.exponentialRampToValueAtTime(f1,t+dur*0.7);
+  const g=AC.createGain(); g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+0.05);
+}
+function clack({f=600,gain=1,ring=0.07,thump=1,when=0}={}){
+  if(!AC||muted)return; const t=AC.currentTime+when;
+  const jit=1+(Math.random()*0.03-0.015);
+  noiseHit(t,{freq:2500,gain:0.55*gain,dur:0.014});
+  [1,1.73,2.33,3.91].forEach((r,i)=>toneHit(t,{f0:f*r*jit,gain:0.30*gain/(1+i*0.9),dur:ring/(1+i*0.55)}));
+  toneHit(t,{f0:f*0.42*jit,f1:f*0.38*jit,gain:0.30*gain,dur:0.06});
+  if(thump>0) noiseHit(t,{type:"lowpass",freq:350,gain:0.5*gain*thump,dur:0.05});
+}
+const sPlace=()=>clack({f:580,gain:1,ring:0.075,thump:1});
+const sFlip=(i)=>clack({f:740*(1+0.045*i),gain:0.5,ring:0.038,thump:0.25});
+function sSwap(){ if(!AC||muted)return; const t=AC.currentTime;
+  const src=AC.createBufferSource(); src.buffer=noiseBuf;
+  const f=AC.createBiquadFilter(); f.type="bandpass"; f.Q.value=2;
+  f.frequency.setValueAtTime(450,t); f.frequency.exponentialRampToValueAtTime(1500,t+0.16);
+  const g=AC.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.05); g.gain.exponentialRampToValueAtTime(0.001,t+0.2);
+  src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t+0.25);
+  clack({f:520,gain:0.5,ring:0.05,thump:0.4,when:0.14});
+}
+function motif(notes,gap){ if(!AC||muted)return; notes.forEach((f,i)=>{ const t=AC.currentTime+i*gap;
+  toneHit(t,{f0:f,gain:0.22,dur:0.5}); toneHit(t,{f0:f*4,gain:0.05,dur:0.18}); }); }
+const sWin=()=>{ [0,1,2].forEach(i=>setTimeout(()=>clack({f:600+i*60,gain:0.7,ring:0.05,thump:0.5}),i*70)); setTimeout(()=>motif([523.25,659.25,783.99],0.11),230); };
+const sLose=()=>setTimeout(()=>motif([392.00,329.63,261.63],0.16),150);
+document.addEventListener("pointerdown",audioInit,{once:false});
+document.addEventListener("visibilitychange",()=>{ if(AC&&document.hidden)AC.suspend(); else if(AC&&!document.hidden&&!muted)AC.resume(); });
+
+/* ===== 盤DOM（作って使い回す：反転アニメーションのため） ===== */
+function buildBoard(el,onClick){
+  const cells=[];
+  for(let i=0;i<CELLS;i++){
+    const btn=document.createElement("button"); btn.className="cell"; btn.type="button";
+    const ghost=document.createElement("div"); ghost.className="ghost gb"; btn.appendChild(ghost);
+    const wrap=document.createElement("div"); wrap.className="wrap";
+    const disc=document.createElement("div"); disc.className="disc hide";
+    const fb=document.createElement("div"); fb.className="face b";
+    const fw=document.createElement("div"); fw.className="face w";
+    disc.appendChild(fb); disc.appendChild(fw); wrap.appendChild(disc); btn.appendChild(wrap);
+    btn.addEventListener("click",()=>onClick(i));
+    el.appendChild(btn);
+    cells.push({btn,disc,ghost});
   }
-  const legal=legalB(board); const scored=[];
-  for(const m of legal){
-    const v=solve(applyB(board,m,player),-player,-2,2);
-    if(capped) return {capped:true};
-    scored.push({move:m,value:v});
+  return cells;
+}
+let lastMoveAt=0;
+function pace(){ const now=performance.now(); const fast=(now-lastMoveAt)<900; lastMoveAt=now; return fast?{dur:120,stag:20}:{dur:200,stag:45}; }
+function renderBoard(boardEl,cells,bd,{clickable=null,placed=-1,flips=[],lastIdx=-1,best=null,ghostTurn=0}={}){
+  const p=pace();
+  boardEl.style.setProperty("--flipdur",(p.dur/1000)+"s");
+  const delayOf=new Map(flips.map((cellIdx,k)=>[cellIdx,k*p.stag]));
+  for(let i=0;i<CELLS;i++){
+    const {btn,disc,ghost}=cells[i]; const v=bd[i];
+    disc.style.transitionDelay=(delayOf.get(i)||0)+"ms";
+    if(v===0){ disc.classList.add("hide"); }
+    else{ disc.classList.remove("hide"); disc.classList.toggle("w",v===-1); }
+    btn.classList.toggle("placed",i===placed);
+    btn.classList.toggle("last",i===lastIdx);
+    btn.classList.toggle("best",!!(best&&best.has(i)));
+    btn.classList.toggle("emptycell",v===0);
+    ghost.className="ghost "+(ghostTurn===-1?"gw":"gb");
+    btn.disabled=clickable? !clickable(i) : true;
   }
-  const bestVal=(player===1)?Math.max(...scored.map(s=>s.value)):Math.min(...scored.map(s=>s.value));
-  return {capped:false, value:bestVal, best:scored.filter(s=>s.value===bestVal).map(s=>s.move)};
+  if(placed>=0) setTimeout(()=>{cells[placed].btn.classList.remove("placed");},220);
+  if(flips.length) setTimeout(()=>{for(const {disc} of cells)disc.style.transitionDelay="0ms";}, p.dur+flips.length*p.stag+120);
+  return p;
+}
+function playMoveSounds(flips,p){
+  sPlace();
+  flips.forEach((_,k)=>setTimeout(()=>sFlip(k),(k*p.stag)+p.dur*0.45));
 }
 
-/* ---------- MCTS-lite (browser, random playouts) ---------- */
-function mctsLite(board, player, sims){
-  const stats=new Map();
-  function playout(b,p){
-    let bb=b.slice(), pp=p;
-    while(true){ const ms=legalB(bb); if(!ms.length) break;
-      const m=ms[Math.floor(Math.random()*ms.length)]; bb=applyB(bb,m,pp); pp=-pp; }
-    return winnerB(bb);
-  }
-  const rootMoves=legalB(board);
-  for(const m of rootMoves) stats.set(m,{n:0,w:0});
-  for(let s=0;s<sims;s++){
-    // simple UCB1 over root moves, then random playout (1-ply tree)
-    let bestM=null,bestS=-1e18;
-    for(const m of rootMoves){ const st=stats.get(m);
-      const mean=st.n? (st.w/ st.n)/2+0.5 : 0.5;
-      const moverMean=(player===1)?mean:1-mean;
-      const u=st.n? 1.2*Math.sqrt(Math.log(s+1)/st.n) : 1e9+Math.random();
-      const sc=moverMean+u; if(sc>bestS){bestS=sc;bestM=m;} }
-    const v=playout(applyB(board,bestM,player),-player);
-    const st=stats.get(bestM); st.n++; st.w+=v;
-  }
-  const out=rootMoves.map(m=>{const st=stats.get(m);return {move:m,visits:st.n,blackWinrate:st.n? st.w/st.n/2+0.5 : 0.5};});
-  out.sort((a,b)=>b.visits-a.visits); return out;
+/* ===== 対戦 ===== */
+const boardEl=document.getElementById("board");
+const statusEl=document.getElementById("status"), scoreEl=document.getElementById("score");
+const swapBox=document.getElementById("swapBox"), swapMsg=document.getElementById("swapMsg");
+let G=null;
+const gameCells=buildBoard(boardEl,i=>humanMove(i));
+function sideName(pl){ return G.mode==="ai" ? (pl===G.humanSide?"あなた":"AI") : (pl===1?G.names[1]:G.names[-1]); }
+function renderGame(anim={}){
+  const clickableSet=new Set();
+  if(G&&!G.over&&!G.awaitingSwap&&(G.mode==="2p"||G.turn===G.humanSide)) empties(G.bd).forEach(m=>clickableSet.add(m));
+  const p=renderBoard(boardEl,gameCells,G.bd,{clickable:i=>clickableSet.has(i),placed:anim.placed??-1,flips:anim.flips||[],lastIdx:anim.placed??-1,ghostTurn:G.turn});
+  const nb=G.bd.filter(v=>v===1).length, nw=G.bd.filter(v=>v===-1).length;
+  scoreEl.textContent=`黒 ${nb} ： 白 ${nw}（残り ${25-nb-nw} 手）`;
+  if(G.over){ statusEl.textContent=`対局終了：黒 ${nb} − 白 ${nw} で ${nb>nw?"黒（"+sideName(1)+"）":"白（"+sideName(-1)+"）"} の勝ちです。`; }
+  else if(G.awaitingSwap){ statusEl.textContent="スワップの判断待ちです。"; }
+  else{ statusEl.textContent = G.mode==="ai" ? (G.turn===G.humanSide?"あなたの番です（"+(G.turn===1?"黒":"白")+"）。":"AIが考え中…") : `${sideName(G.turn)}（${G.turn===1?"黒":"白"}）の番です。`; }
+  return p;
 }
+function afterMove(placed,flips){
+  const p=renderGame({placed,flips}); playMoveSounds(flips,p);
+  if(empties(G.bd).length===0){ G.over=true; renderGame({});
+    if(G.mode==="ai"){ const nb=G.bd.filter(v=>v===1).length; const humanWon=(nb>12.5)===(G.humanSide===1); humanWon?sWin():sLose(); } else sWin();
+    return; }
+  if(G.moves===1&&!G.swapDone){
+    if(G.mode==="ai"){
+      if(ROOT_WR[placed]>=0.718){ G.humanSide=-1; G.swapDone=true; sSwap();
+        statusEl.textContent=`AIがスワップしました。強い初手（黒勝率 ${ROOT_WR[placed].toFixed(3)}）だったので先手を譲りません。あなたは白で、次はあなたの手番です。`; }
+      else { G.swapDone=true; setTimeout(aiTurn,520); }
+    } else { G.awaitingSwap=true; swapMsg.textContent=`${G.names[-1]}さん：先手の初手（${cellName(placed)}）を見て、スワップしますか？`; swapBox.style.display="flex"; renderGame({}); }
+    return;
+  }
+  if(G.mode==="ai"&&G.turn!==G.humanSide) setTimeout(aiTurn,520);
+}
+function doMove(i){
+  const flips=flipsOf(G.bd,i,G.turn).slice().sort((a,b)=>a-b);
+  applyInPlace(G.bd,i,G.turn); G.moves++; const placed=i; G.turn=-G.turn;
+  afterMove(placed,flips);
+}
+function humanMove(i){ if(!G||G.over||G.awaitingSwap)return; if(G.mode==="ai"&&G.turn!==G.humanSide)return; if(G.bd[i]!==0)return; audioInit(); doMove(i); }
+function aiTurn(){ if(!G||G.over)return; const m=aiMove(G.bd,G.turn); if(m>=0)doMove(m); }
+function newGame(mode){
+  G={bd:Array(25).fill(0),turn:1,mode:mode||(G?G.mode:"ai"),humanSide:1,moves:0,over:false,awaitingSwap:false,swapDone:false,names:{1:"プレイヤーA","-1":"プレイヤーB"}};
+  swapBox.style.display="none";
+  document.getElementById("modeAI").classList.toggle("on",G.mode==="ai");
+  document.getElementById("mode2P").classList.toggle("on",G.mode==="2p");
+  renderGame({});
+}
+document.getElementById("modeAI").addEventListener("click",()=>newGame("ai"));
+document.getElementById("mode2P").addEventListener("click",()=>newGame("2p"));
+document.getElementById("newGame").addEventListener("click",()=>newGame());
+document.getElementById("swapYes").addEventListener("click",()=>{ if(!G)return; const t=G.names[1]; G.names[1]=G.names[-1]; G.names[-1]=t; G.swapDone=true; G.awaitingSwap=false; swapBox.style.display="none"; sSwap(); renderGame({}); statusEl.textContent="スワップ成立。先手（黒）は"+G.names[1]+"さんになりました。次は白の手番です。"; });
+document.getElementById("swapNo").addEventListener("click",()=>{ if(!G)return; G.swapDone=true; G.awaitingSwap=false; swapBox.style.display="none"; renderGame({}); });
+const soundBtn=document.getElementById("soundBtn");
+function syncSoundBtn(){ soundBtn.textContent=muted?"🔇 音なし":"🔊 音あり"; }
+soundBtn.addEventListener("click",()=>{ muted=!muted; localStorage.setItem("flipfill_muted",muted?"1":"0"); audioInit(); if(master)master.gain.value=muted?0:0.5; syncSoundBtn(); if(!muted)sPlace(); });
+syncSoundBtn();
 
-/* ---------- opening book (root MCTS win rates, embedded) ---------- */
-const ROOT_WR={0:0.7238,4:0.7238,20:0.7238,24:0.7238,1:0.7045,3:0.7045,5:0.7045,9:0.7045,15:0.7045,17:0.7045,19:0.7045,23:0.7045,2:0.7119,10:0.7119,14:0.7119,22:0.7119,6:0.7037,8:0.7037,16:0.7037,18:0.7037,7:0.7063,11:0.7063,13:0.7063,21:0.7063,12:0.7135}; // symmetry-averaged MCTS black win rates
-</script>
-<script>
-"use strict";
-/* ---------- game ---------- */
-let G={board:Array(C).fill(0), turn:1, over:false, mode:'ai', human:1, awaitingSwap:false, moves:0};
-const boardEl=document.getElementById('board'), statusEl=document.getElementById('status'),
-      swapBtn=document.getElementById('swapBtn'), noSwapBtn=document.getElementById('noSwapBtn'), modeSel=document.getElementById('mode');
-function aiChoose(b,p){
-  const ms=legalB(b);
-  if(b.filter(v=>v===0).length<=10){
-    const r=exactSolve(b,p,1500000);
-    if(!r.capped && r.best.length) return r.best[Math.floor(Math.random()*r.best.length)];
-  }
-  let best=[],bv=-1e9;
-  for(const m of ms){const nb=applyB(b,m,p);const v=nb.filter(x=>x===p).length-nb.filter(x=>x===-p).length+Math.random()*0.6;
-    if(v>bv){bv=v;best=[m];}else if(v===bv)best.push(m);}
-  return best[Math.floor(Math.random()*best.length)];
-}
-function stoneCount(b){return [b.filter(v=>v===1).length, b.filter(v=>v===-1).length];}
-function renderGame(){
-  boardEl.innerHTML='';
-  G.board.forEach((v,i)=>{const d=document.createElement('button');
-    d.className='cell'+(v===1?' black':v===-1?' white':'');
-    d.textContent=v===1?'●':v===-1?'○':'';
-    const humanTurn=(G.mode==='2p')||(G.turn===G.human);
-    d.disabled=G.over||v!==0||!humanTurn||G.awaitingSwap;
-    d.onclick=()=>playHuman(i);
-    boardEl.appendChild(d);});
-  const [bc,wc]=stoneCount(G.board);
-  if(G.over){ statusEl.textContent=`終了： 黒 ${bc} 対 白 ${wc} ― ${winnerB(G.board)===1?'黒の勝ち':'白の勝ち'}`; }
-  else if(G.awaitingSwap){ statusEl.textContent='初手が打たれました。後手はスワップ（色の交換）か、このまま続けるかを選んでください。'; }
-  else{
-    const who=G.turn===1?'黒':'白';
-    const actor=(G.mode==='2p')?who:((G.turn===G.human)?'あなた':'AI');
-    statusEl.textContent=`${actor}の手番（${who}）。石数 黒 ${bc} 対 白 ${wc}`;
-  }
-  swapBtn.disabled=!G.awaitingSwap;
-  noSwapBtn.disabled=!G.awaitingSwap;
-}
-function maybeAi(){
-  if(G.mode!=='ai'||G.over||G.awaitingSwap) return;
-  if(G.turn!==G.human){
-    setTimeout(()=>{ if(G.over||G.awaitingSwap)return;
-      const m=aiChoose(G.board,G.turn); G.board=applyB(G.board,m,G.turn); G.turn=-G.turn; G.moves++;
-      if(!legalB(G.board).length) G.over=true;
-      renderGame(); },400);
-  }
-}
-function playHuman(i){
-  G.board=applyB(G.board,i,G.turn); G.moves++;
-  const justMoved=G.turn; G.turn=-G.turn;
-  if(!legalB(G.board).length){ G.over=true; renderGame(); return; }
-  if(G.moves===1){
-    // pie rule window
-    if(G.mode==='ai'){
-      const wr=ROOT_WR[i]||0.71;
-      if(wr>=0.718){
-        // AI (white) swaps: takes over black and the first move; player becomes white and moves next
-        G.human=-1;
-        renderGame();
-        statusEl.textContent=`AIがスワップを宣言しました（初手のMCTS勝率 ${(wr*100).toFixed(1)}% は「強い初手」）。あなたは白（後手）になりました。あなたの手番です。`;
-        return;
-      }
-      renderGame(); maybeAi(); return;
-    }else{
-      G.awaitingSwap=true; renderGame(); return;
-    }
-  }
-  renderGame(); maybeAi();
-}
-swapBtn.onclick=()=>{
-  if(!G.awaitingSwap) return;
-  G.awaitingSwap=false;
-  // Pie rule: the second player takes over the black side including the stone
-  // already placed; the original first player becomes white and moves next.
-  // G.turn is already -1 (white to move), which is exactly the original first player.
-  renderGame();
-  statusEl.textContent='スワップ成立：後手が黒と初手を引き継ぎました。白（元の先手）の手番です。';
-};
-noSwapBtn.onclick=()=>{
-  if(!G.awaitingSwap) return;
-  G.awaitingSwap=false;
-  renderGame();
-};
-document.getElementById('reset').onclick=()=>{
-  G={board:Array(C).fill(0),turn:1,over:false,mode:modeSel.value,human:1,awaitingSwap:false,moves:0};
-  renderGame();
-};
-modeSel.onchange=()=>document.getElementById('reset').onclick();
-renderGame();
-
-/* ---------- analysis board ---------- */
-let A={board:Array(C).fill(0), turn:1, hist:[]};
-const aBoardEl=document.getElementById('aboard'), aOut=document.getElementById('aOut');
-function renderAnalysis(best){
-  aBoardEl.innerHTML='';
-  A.board.forEach((v,i)=>{const d=document.createElement('button');
-    d.className='cell'+(v===1?' black':v===-1?' white':'')+((best&&best.includes(i))?' best':'');
-    d.textContent=v===1?'●':v===-1?'○':'';
-    d.disabled=v!==0;
-    d.onclick=()=>{A.hist.push(A.board); A.board=applyB(A.board,i,A.turn); A.turn=-A.turn; renderAnalysis();};
-    aBoardEl.appendChild(d);});
-}
-document.getElementById('aReset').onclick=()=>{A={board:Array(C).fill(0),turn:1,hist:[]}; aOut.textContent='盤を空にしました。'; renderAnalysis();};
-document.getElementById('aUndo').onclick=()=>{ if(A.hist.length){A.board=A.hist.pop(); A.turn=-A.turn; renderAnalysis();} };
-document.getElementById('aRun').onclick=()=>{
-  const empties=A.board.filter(v=>v===0).length;
-  if(!empties){ aOut.innerHTML='盤が埋まっています。勝敗：'+(winnerB(A.board)===1?'黒の勝ち':'白の勝ち'); return; }
-  aOut.textContent='解析中…';
+/* ===== 解析盤 ===== */
+const anaEl=document.getElementById("anaBoard");
+const anaStatus=document.getElementById("anaStatus"), anaResult=document.getElementById("anaResult");
+let anaBd=Array(25).fill(0), anaTurn=1, anaHist=[];
+const anaCells=buildBoard(anaEl,i=>{
+  if(anaBd[i]!==0)return; audioInit();
+  const flips=flipsOf(anaBd,i,anaTurn).slice().sort((a,b)=>a-b);
+  anaHist.push({bd:anaBd.slice(),turn:anaTurn});
+  applyInPlace(anaBd,i,anaTurn); const pl=anaTurn; anaTurn=-anaTurn;
+  const p=renderAna({placed:i,flips}); playMoveSounds(flips,p);
+  anaStatus.textContent=`${anaTurn===1?"黒（先手）":"白（後手）"}の手番です（残り空き ${empties(anaBd).length}）。`;
+  anaResult.innerHTML="";
+});
+function renderAna(anim={}){ return renderBoard(anaEl,anaCells,anaBd,{clickable:i=>anaBd[i]===0,placed:anim.placed??-1,flips:anim.flips||[],lastIdx:anim.placed??-1,best:anim.best||null,ghostTurn:anaTurn}); }
+document.getElementById("anaUndo").addEventListener("click",()=>{ const h=anaHist.pop(); if(!h)return; anaBd=h.bd; anaTurn=h.turn; renderAna({}); anaStatus.textContent=`${anaTurn===1?"黒（先手）":"白（後手）"}の手番です（残り空き ${empties(anaBd).length}）。`; anaResult.innerHTML=""; });
+document.getElementById("anaReset").addEventListener("click",()=>{ anaBd=Array(25).fill(0); anaTurn=1; anaHist=[]; renderAna({}); anaStatus.textContent="黒（先手）の手番です。空きマスをタップして交互に置いてください。"; anaResult.innerHTML=""; });
+document.getElementById("anaRun").addEventListener("click",()=>{
+  const es=empties(anaBd); if(es.length===0){anaResult.innerHTML="<p>盤が埋まっています。</p>";return;}
+  anaStatus.textContent="解析中…";
   setTimeout(()=>{
-    if(empties<=10){
-      const r=exactSolve(A.board,A.turn,3000000);
-      if(r.capped){ aOut.innerHTML='<span class="stat">統計推定</span>：厳密解が制限内に終わらなかったため、MCTS推定に切り替えました。'; 
-        const est=mctsLite(A.board,A.turn,800); const top=est.slice(0,3);
-        aOut.innerHTML+='<br>最善手候補：'+top.map(t=>`${cellName(t.move)}（先手勝率 ${(t.blackWinrate*100).toFixed(1)}%、訪問${t.visits}）`).join(' / ');
-        renderAnalysis(top.map(t=>t.move)); return; }
-      const valTxt=r.value===1?'黒の勝ち（確定）':'白の勝ち（確定）';
-      aOut.innerHTML=`<span class="prov">証明済み</span>：この局面は最適プレイで <b>${valTxt}</b>。最善手：${r.best.map(cellName).join('、')}`;
-      renderAnalysis(r.best);
-    }else{
-      const est=mctsLite(A.board,A.turn,800); const top=est.slice(0,3);
-      aOut.innerHTML=`<span class="stat">統計推定</span>（MCTS 800回・ランダムプレイアウト）：最善手候補：`+
-        top.map(t=>`${cellName(t.move)}（先手勝率 ${(t.blackWinrate*100).toFixed(1)}%、訪問${t.visits}）`).join(' / ')+
-        `<br>手番は${A.turn===1?'黒':'白'}。これは推定であり、証明ではありません。`;
-      renderAnalysis(top.map(t=>t.move));
+    if(es.length<=10){ TT.clear(); const r=bestMoveExact(anaBd,anaTurn); const mine=anaBd.filter(v=>v===anaTurn).length, his=anaBd.filter(v=>v===-anaTurn).length;
+      const finalDiff=r.val; const outcome=finalDiff>0?"手番側の勝ち":finalDiff<0?"手番側の負け":"引き分け（到達不能のはずですが念のため）";
+      anaResult.innerHTML=`<p><strong>完全読みの結論</strong><span class="badge proven">証明済み</span></p><p>この局面は手番側（${anaTurn===1?"黒":"白"}）から見て <strong>${outcome}</strong>（最終石数差 ${finalDiff>0?"+":""}${finalDiff}）。最善手は <strong>${cellName(r.move)}</strong> です。現在の石数は 手番側 ${mine} ： 相手 ${his}。</p>`;
+      renderAna({best:new Set([r.move])});
+    } else { const r=mctsLite(anaBd,anaTurn,800); const top=r.rows.slice(0,3).map(x=>`${cellName(x.move)}（手番側勝率 ${(x.wr*100).toFixed(0)}%）`).join("、");
+      anaResult.innerHTML=`<p><strong>MCTS推定（800回試行）</strong><span class="badge estim">統計推定</span></p><p>空きが ${es.length} マスあり完全読みの範囲外のため、推定です。候補：${top}。最有力は <strong>${cellName(r.best)}</strong>。</p>`;
+      renderAna({best:new Set([r.best])});
     }
+    anaStatus.textContent=`${anaTurn===1?"黒（先手）":"白（後手）"}の手番です（残り空き ${es.length}）。`;
   },30);
-};
-renderAnalysis();
+});
+renderAna({});
 
-/* ---------- heatmap (symmetry-averaged MCTS) ---------- */
-const heatEl=document.getElementById('mctsHeat');
-for(let i=0;i<C;i++){const v=ROOT_WR[i];const d=document.createElement('div');d.className='hcell';
-  const t=(v-0.70)/(0.725-0.70); d.style.background=`hsl(45, 80%, ${32+Math.max(0,Math.min(1,t))*42}%)`;
-  d.textContent=(v*100).toFixed(1); heatEl.appendChild(d);}
+/* ===== ヒートマップと定跡表 ===== */
+function fillHeat(el,vals){ el.innerHTML=""; for(let i=0;i<25;i++){ const d=document.createElement("div"); d.style.background=colorFor(vals[i]); d.style.color=vals[i]>0.712?"#fff":"#123"; d.textContent=vals[i].toFixed(3); el.appendChild(d);} }
+fillHeat(document.getElementById("heat"), Array.from({length:25},(_,i)=>ROOT_WR[i]));
+fetch("data.json").then(r=>r.json()).then(d=>{ fillHeat(document.getElementById("heatRand"), d.part_a_random.map(x=>x.black_win_rate)); }).catch(()=>{});
+fetch("book.json").then(r=>r.json()).then(b=>{
+  const cls=b.meta.symmetry_classes.map(c=>`${c.name} ${c.avg_black_win_rate.toFixed(3)}`).join(" ／ ");
+  document.getElementById("heatNote").textContent="対称クラスの平均（訪問数で重み付け）："+cls+"。隅がいちばん高く、内側角がいちばん低い。ただし差は約2ptで、「どこに置くか」より「先手であること」自体が効いています。";
+  const box=document.getElementById("bookTables");
+  for(const line of b.lines){ const h=document.createElement("h3"); h.textContent=`初手：${line.name}（${cellName(line.first_move)}、黒勝率 ${line.first_move_wr.toFixed(3)}）`; box.appendChild(h);
+    const t=document.createElement("table"); t.innerHTML="<tr><th>白の応手</th><th>その後の黒勝率</th><th>探索回数</th></tr>"+line.responses.map(r=>`<tr><td>${cellName(r.move)}</td><td>${r.black_win_rate.toFixed(3)}</td><td>${r.visits.toLocaleString()}</td></tr>`).join(""); box.appendChild(t); }
+}).catch(()=>{ document.getElementById("bookTables").innerHTML="<p class='note'>定跡データ（book.json）を読み込めませんでした。</p>"; });
 
-/* ---------- book tables ---------- */
-fetch('book.json').then(r=>r.json()).then(book=>{
-  const wrap=document.getElementById('bookTables');
-  let html='';
-  for(const line of book.unique_first_moves){
-    html+=`<h3>${line.name}（初手：${cellName(line.move)}）への応手</h3><table><tr><th>後手の応手</th><th>訪問数</th><th>先手勝率</th></tr>`;
-    for(const r of line.responses){ html+=`<tr><td>${cellName(r.move)}</td><td>${r.visits}</td><td>${(r.black_winrate*100).toFixed(1)}%</td></tr>`; }
-    html+='</table>';
-  }
-  wrap.innerHTML=html;
-}).catch(()=>{ document.getElementById('bookTables').innerHTML='<p class="note">定跡本データ（book.json）の読み込みに失敗しました。</p>'; });
+newGame("ai");
 </script>
 </body>
 </html>
