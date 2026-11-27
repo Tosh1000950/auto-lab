@@ -43,11 +43,14 @@ button.act:disabled{opacity:.4;cursor:default}
 .disc{position:absolute;inset:0;transform-style:preserve-3d;transition:transform var(--flipdur) ease-out}
 .disc.w{transform:rotateY(180deg)}
 .disc.hide{display:none}
-.face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden}
-.face.b{background:radial-gradient(circle at 34% 30%, #6d727f, #22232a 52%, #050506 80%);box-shadow: inset -3px -4px 8px rgba(0,0,0,.85), inset 2px 3px 6px rgba(255,255,255,.28), 0 3px 5px rgba(40,20,0,.5)}
-.face.b::after{content:"";position:absolute;left:25%;top:16%;width:28%;height:17%;border-radius:50%;background:rgba(255,255,255,.55);filter:blur(2px);transform:rotate(-24deg)}
-.face.w{background:radial-gradient(circle at 34% 30%, #ffffff, #eae5d9 52%, #b3ab99 82%);box-shadow: inset -3px -4px 8px rgba(120,110,90,.5), inset 2px 3px 6px rgba(255,255,255,.95), 0 3px 5px rgba(40,20,0,.45);transform:rotateY(180deg)}
-.face.w::after{content:"";position:absolute;left:25%;top:16%;width:28%;height:17%;border-radius:50%;background:rgba(255,255,255,.75);filter:blur(2px);transform:rotate(-24deg)}
+.edge{position:absolute;inset:-1px;border-radius:50%;background:linear-gradient(180deg,#3c3f46,#0e0e10);transform:translateZ(-3px)}
+.face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:translateZ(1.5px)}
+.face.b{background:repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 3px, rgba(0,0,0,0) 3px 7px),radial-gradient(circle at 50% 38%, #44464f, #1b1c21 58%, #0b0b0d 84%);box-shadow: inset 0 -3px 6px rgba(0,0,0,.7), inset 0 2px 4px rgba(255,255,255,.22), 0 3px 5px rgba(40,20,0,.5)}
+.face.b::after{content:"";position:absolute;left:31%;top:19%;width:32%;height:13%;border-radius:50%;background:rgba(255,255,255,.26);filter:blur(2px);transform:rotate(-18deg)}
+.face.w{background:repeating-radial-gradient(circle at 50% 50%, rgba(90,80,60,.055) 0 3px, rgba(0,0,0,0) 3px 7px),radial-gradient(circle at 50% 38%, #ffffff, #e7e1d3 58%, #aca48d 86%);box-shadow: inset 0 -3px 6px rgba(110,100,80,.42), inset 0 2px 4px rgba(255,255,255,.95), 0 3px 5px rgba(40,20,0,.45);transform:rotateY(180deg) translateZ(1.5px)}
+.face.w::after{content:"";position:absolute;left:31%;top:19%;width:32%;height:13%;border-radius:50%;background:rgba(255,255,255,.6);filter:blur(2px);transform:rotate(-18deg)}
+.board.crest .face.b::before{content:"";position:absolute;left:50%;top:50%;width:48%;height:48%;transform:translate(-50%,-50%);border-radius:50%;border:2px solid rgba(216,164,65,.9);background:radial-gradient(circle, rgba(216,164,65,.95) 0 15%, transparent 16%);z-index:1}
+.board.crest .face.w::before{content:"";position:absolute;left:50%;top:50%;width:48%;height:48%;transform:translate(-50%,-50%);border-radius:50%;border:2px solid rgba(122,90,26,.85);background:radial-gradient(circle, rgba(122,90,26,.9) 0 15%, transparent 16%);z-index:1}
 .ghost{position:absolute;inset:5.5%;border-radius:50%;opacity:0;pointer-events:none;transition:opacity .12s}
 .ghost.gb{background:radial-gradient(circle at 34% 30%, #6d727f, #22232a 60%, #050506)}
 .ghost.gw{background:radial-gradient(circle at 34% 30%, #ffffff, #eae5d9 60%, #b3ab99)}
@@ -70,7 +73,7 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <body>
 <main>
 <h1>FLIPFILL（フリップフィル）</h1>
-<p class="sub">置くと、隣の敵石が全部ひっくり返る。5×5・全25手で盤が埋まる、新しい反転ゲームの定跡書。<br>2026年11月27日夜に考案、Colabで20万回対戦を回して初手の全マップを作り、28日にMCTSで応手表と解析盤、<strong>本日v3で木盤・石の質感、3D反転アニメーションと打石音</strong>を追加した実験作。</p>
+<p class="sub">置くと、隣の敵石が全部ひっくり返る。5×5・全25手で盤が埋まる、新しい反転ゲームの定跡書。<br>2026年11月27日夜に考案、Colabで20万回対戦を回して初手の全マップを作り、28日にMCTSで応手表と解析盤、<strong>本日v3で質感・3D反転・打石音、v4で両面コマ化・AI難易度・現実版の遊び方</strong>を追加した実験作。</p>
 
 <h2>遊ぶ</h2>
 <div class="card">
@@ -79,6 +82,15 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <button class="act" id="mode2P">2人対戦</button>
 <button class="act" id="newGame">はじめから</button>
 <button class="act" id="soundBtn">🔊 音あり</button>
+</div>
+<div class="controls">
+<span class="note">AIの強さ：</span>
+<button class="act diff" data-d="weak">弱い</button>
+<button class="act diff on" data-d="normal">普通</button>
+<button class="act diff" data-d="strong">強い</button>
+<span class="note">コマ：</span>
+<button class="act skin on" data-s="plain">白黒コマ</button>
+<button class="act skin" data-s="crest">紋様コマ</button>
 </div>
 <div class="status" id="status"></div>
 <div class="score" id="score"></div>
@@ -126,6 +138,15 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <p>一方、白の応手次第で黒勝率は0.72→0.69前後まで下がります。面白いのは、強い応手が「隣に行って取り返す」ではなく<strong>離れたマス</strong>に多いこと。中央開き（12）への応手では0.688まで下がり、初手の中でいちばん応手が効きました。「置いた石の隣は、次に自分が置けばまた全部返せる」構造なので、隣接の応酬は先手に有利なまま、という読みと一致します。</p>
 <h3>証明できる範囲</h3>
 <p>空き10マス以下なら完全読みが現実的（Colab CPUで1.5〜4.4秒／局面）で、解析盤とAIの終盤はこの証明済みエンジンで動いています。空き12では約90秒（ローカル実測）かかり、証明範囲の境界は10〜12の間にあります。</p>
+</div>
+
+<h2>コマと現実版（v4）</h2>
+<div class="card">
+<p><strong>コマは「裏返せば色が変わる両面コマ」が正解でした。</strong>v3までの石は半球状で、現実に作ると「黒石25個＋白石25個」が必要な非効率な形でした。両面コマなら<strong>25個で済み、コマの数も置き間違いの管理も半分</strong>になります。v4でコマを、厚みのある平たい円盤（側面つき・表面に同心の溝）として描き直しました。ひっくり返すアニメーションも、この形で初めて「裏返す」動きとして意味を持ちます。</p>
+<p><strong>現実の盤でも、そのまま遊べます。</strong>用意するものは2つだけです。</p>
+<p>① 紙に5×5のマスを描く（1マス4cm以上あるとコマが置きやすい）。<br>② 白黒の両面コマ25個。リバーシ用のコマがそのまま使えます（市販セットは64個入りなので十分足ります）。コインや碁石＋裏表のある代用品でも可。</p>
+<p>遊び方は画面と同じ：交互に1個置き、上下左右の隣の相手コマを全部裏返す。25マス埋まったら多い方の勝ち。スワップは「後手が1手目を見て、先手と交代する」と宣言すれば成立します。なお「オセロ」は登録商標なので、このページでは一般名のリバーシ用コマと表記しています。コマの形そのものは19世紀のリバーシ以来のもので、使うことに権利上の問題はありません。</p>
+<p>画面のコマは2種類から選べます。「白黒コマ」は現実のコマそのままの姿、「紋様コマ」はこのゲーム専用の意匠（黒面に金の紋、白面に銅色の紋）です。現実版を作るなら白黒、世界観を楽しむなら紋様、という使い分けを想定しています。</p>
 </div>
 
 <h2>音と動きの設計（v3）</h2>
@@ -229,6 +250,7 @@ function buildBoard(el,onClick){
     const ghost=document.createElement("div"); ghost.className="ghost gb"; btn.appendChild(ghost);
     const wrap=document.createElement("div"); wrap.className="wrap";
     const disc=document.createElement("div"); disc.className="disc hide";
+    const edge=document.createElement("div"); edge.className="edge"; disc.appendChild(edge);
     const fb=document.createElement("div"); fb.className="face b";
     const fw=document.createElement("div"); fw.className="face w";
     disc.appendChild(fb); disc.appendChild(fw); wrap.appendChild(disc); btn.appendChild(wrap);
@@ -290,8 +312,8 @@ function afterMove(placed,flips){
     return; }
   if(G.moves===1&&!G.swapDone){
     if(G.mode==="ai"){
-      if(ROOT_WR[placed]>=0.718){ G.humanSide=-1; G.swapDone=true; sSwap();
-        statusEl.textContent=`AIがスワップしました。強い初手（黒勝率 ${ROOT_WR[placed].toFixed(3)}）だったので先手を譲りません。あなたは白で、次はあなたの手番です。`; }
+      if(ROOT_WR[placed]>=0.718){ G.humanSide=-1; G.swapDone=true; sSwap(); renderGame({});
+        statusEl.textContent=`AIがスワップしました。強い初手（黒勝率 ${ROOT_WR[placed].toFixed(3)}）だったので、先手を取られました。あなたは白で、次はあなたの手番です。`; }
       else { G.swapDone=true; setTimeout(aiTurn,520); }
     } else { G.awaitingSwap=true; swapMsg.textContent=`${G.names[-1]}さん：先手の初手（${cellName(placed)}）を見て、スワップしますか？`; swapBox.style.display="flex"; renderGame({}); }
     return;
@@ -304,7 +326,14 @@ function doMove(i){
   afterMove(placed,flips);
 }
 function humanMove(i){ if(!G||G.over||G.awaitingSwap)return; if(G.mode==="ai"&&G.turn!==G.humanSide)return; if(G.bd[i]!==0)return; audioInit(); doMove(i); }
-function aiTurn(){ if(!G||G.over)return; const m=aiMove(G.bd,G.turn); if(m>=0)doMove(m); }
+let DIFF="normal";
+function aiMoveByDiff(bd,pl){ const es=empties(bd);
+  if(DIFF==="weak"){ if(Math.random()<0.55) return es[(Math.random()*es.length)|0]; return greedyMove(bd,pl); }
+  if(DIFF==="strong"){ if(es.length<=11) return bestMoveExact(bd,pl).move; return mctsLite(bd,pl,es.length<=14?1200:500).best; }
+  return aiMove(bd,pl); }
+function aiTurn(){ if(!G||G.over)return; const m=aiMoveByDiff(G.bd,G.turn); if(m>=0)doMove(m); }
+document.querySelectorAll(".diff").forEach(b=>b.addEventListener("click",()=>{ DIFF=b.dataset.d; document.querySelectorAll(".diff").forEach(x=>x.classList.toggle("on",x===b)); }));
+document.querySelectorAll(".skin").forEach(b=>b.addEventListener("click",()=>{ document.querySelectorAll(".skin").forEach(x=>x.classList.toggle("on",x===b)); document.querySelectorAll(".board").forEach(el=>el.classList.toggle("crest",b.dataset.s==="crest")); }));
 function newGame(mode){
   G={bd:Array(25).fill(0),turn:1,mode:mode||(G?G.mode:"ai"),humanSide:1,moves:0,over:false,awaitingSwap:false,swapDone:false,names:{1:"プレイヤーA","-1":"プレイヤーB"}};
   swapBox.style.display="none";
