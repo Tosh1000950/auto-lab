@@ -28,9 +28,8 @@ button.act:disabled{opacity:.4;cursor:default}
 .boardWrap{display:flex;justify-content:center;margin:10px 0}
 .board{--flipdur:.2s;width:min(88vmin,500px);aspect-ratio:1/1;display:grid;grid-template-columns:repeat(5,1fr);gap:2%;padding:3.4%;border-radius:16px;perspective:760px;
  background:
-  repeating-linear-gradient(93deg, rgba(122,72,20,.10) 0 14px, rgba(255,220,160,.05) 14px 29px),
-  repeating-linear-gradient(2deg, rgba(90,50,10,.07) 0 9px, rgba(255,230,180,.04) 9px 23px),
-  linear-gradient(135deg,#cf9250,#b57a38 45%,#9c652b);
+  linear-gradient(135deg, rgba(255,242,205,.16), rgba(70,38,0,.16)),
+  url("assets/board.webp") center/cover, #b57a38;
  box-shadow: inset 2px 2px 6px rgba(255,240,200,.5), inset -3px -3px 9px rgba(60,30,0,.5), 0 18px 42px rgba(60,35,0,.35)}
 .board.small{width:min(80vmin,330px)}
 .cell{position:relative;border:1px solid rgba(70,40,5,.4);border-radius:10px;background:linear-gradient(145deg, rgba(255,226,170,.16), rgba(80,45,5,.10));cursor:pointer;padding:0;box-shadow: inset 1px 1px 3px rgba(255,240,205,.35), inset -1px -1px 3px rgba(60,30,0,.35)}
@@ -45,12 +44,12 @@ button.act:disabled{opacity:.4;cursor:default}
 .disc.hide{display:none}
 .edge{position:absolute;inset:-1px;border-radius:50%;background:linear-gradient(180deg,#3c3f46,#0e0e10);transform:translateZ(-3px)}
 .face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:translateZ(1.5px)}
-.face.b{background:repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 3px, rgba(0,0,0,0) 3px 7px),radial-gradient(circle at 50% 38%, #44464f, #1b1c21 58%, #0b0b0d 84%);box-shadow: inset 0 -3px 6px rgba(0,0,0,.7), inset 0 2px 4px rgba(255,255,255,.22), 0 3px 5px rgba(40,20,0,.5)}
-.face.b::after{content:"";position:absolute;left:31%;top:19%;width:32%;height:13%;border-radius:50%;background:rgba(255,255,255,.26);filter:blur(2px);transform:rotate(-18deg)}
-.face.w{background:repeating-radial-gradient(circle at 50% 50%, rgba(90,80,60,.055) 0 3px, rgba(0,0,0,0) 3px 7px),radial-gradient(circle at 50% 38%, #ffffff, #e7e1d3 58%, #aca48d 86%);box-shadow: inset 0 -3px 6px rgba(110,100,80,.42), inset 0 2px 4px rgba(255,255,255,.95), 0 3px 5px rgba(40,20,0,.45);transform:rotateY(180deg) translateZ(1.5px)}
-.face.w::after{content:"";position:absolute;left:31%;top:19%;width:32%;height:13%;border-radius:50%;background:rgba(255,255,255,.6);filter:blur(2px);transform:rotate(-18deg)}
-.board.crest .face.b::before{content:"";position:absolute;left:50%;top:50%;width:48%;height:48%;transform:translate(-50%,-50%);border-radius:50%;border:2px solid rgba(216,164,65,.9);background:radial-gradient(circle, rgba(216,164,65,.95) 0 15%, transparent 16%);z-index:1}
-.board.crest .face.w::before{content:"";position:absolute;left:50%;top:50%;width:48%;height:48%;transform:translate(-50%,-50%);border-radius:50%;border:2px solid rgba(122,90,26,.85);background:radial-gradient(circle, rgba(122,90,26,.9) 0 15%, transparent 16%);z-index:1}
+.face.b{background:radial-gradient(circle at 50% 34%, #41434c, #141519 56%, #060607 88%);box-shadow: inset 0 -3px 6px rgba(0,0,0,.8), inset 0 2px 5px rgba(255,255,255,.28), 0 3px 5px rgba(40,20,0,.55)}
+.face.b::after{content:"";position:absolute;left:30%;top:17%;width:34%;height:14%;border-radius:50%;background:rgba(255,255,255,.34);filter:blur(2px);transform:rotate(-18deg)}
+.face.w{background:radial-gradient(circle at 50% 34%, #ffffff, #f4efe3 56%, #d6cfbc 90%);box-shadow: inset 0 -3px 6px rgba(110,100,80,.35), inset 0 2px 5px rgba(255,255,255,1), 0 3px 5px rgba(40,20,0,.45);transform:rotateY(180deg) translateZ(1.5px)}
+.face.w::after{content:"";position:absolute;left:30%;top:17%;width:34%;height:14%;border-radius:50%;background:rgba(255,255,255,.65);filter:blur(2px);transform:rotate(-18deg)}
+.board.crest .face.b::before{content:"✦";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.9rem;color:#e9b949;text-shadow:0 0 6px rgba(233,185,73,.6);z-index:1}
+.board.crest .face.w::before{content:"✦";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.9rem;color:#23242a;z-index:1}
 .ghost{position:absolute;inset:5.5%;border-radius:50%;opacity:0;pointer-events:none;transition:opacity .12s}
 .ghost.gb{background:radial-gradient(circle at 34% 30%, #6d727f, #22232a 60%, #050506)}
 .ghost.gw{background:radial-gradient(circle at 34% 30%, #ffffff, #eae5d9 60%, #b3ab99)}
@@ -148,6 +147,15 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <p>一方、白の応手次第で黒勝率は0.72→0.69前後まで下がります。面白いのは、強い応手が「隣に行って取り返す」ではなく<strong>離れたマス</strong>に多いこと。中央開き（12）への応手では0.688まで下がり、初手の中でいちばん応手が効きました。「置いた石の隣は、次に自分が置けばまた全部返せる」構造なので、隣接の応酬は先手に有利なまま、という読みと一致します。</p>
 <h3>証明できる範囲</h3>
 <p>空き10マス以下なら完全読みが現実的（Colab CPUで1.5〜4.4秒／局面）で、解析盤とAIの終盤はこの証明済みエンジンで動いています。空き12では約90秒（ローカル実測）かかり、証明範囲の境界は10〜12の間にあります。</p>
+</div>
+
+<h2>復刻ノート（架空の来歴）</h2>
+<div class="card">
+<p class="note">※この来歴は、作者Tosh1の未発表ファンタジー小説の世界を舞台にした<strong>架空設定</strong>です。現実の歴史ではありません。</p>
+<p>ヴェルカント大陸の西端、港湾都市国家リヴェールの酒場では、夕刻になると決まって盤を囲む輪ができる。遊ばれているのは「両面戯（ドゥオ）」——現地の古い言葉で「二つの顔」を意味する小盤戯である。使うのは5×5の盤と、表が黒、裏が白の両面コマ25枚だけ。コマを置けば、上下左右の相手のコマがすべて裏返る。盤が満ちたとき、多くを表にしている者の勝ち。</p>
+<p>両面コマの由来は、船乗りたちの倹約だという。嵐の海で50枚のコマなど持っていられない。1枚で二役を兼ねるコマは、荷物の少なさと同時に、この遊戯の哲学になった。リヴェールには今も諺が残る——「一枚のコマに二つの顔。裏返すまで、人は分からぬ」。黒い面は「玄（げん）」、白い面は「素（そ）」と呼ばれ、盤は満ちることをもって終わるため「玄素盤（げんそばん）」、あるいは「満ち盤」とも呼ばれる。</p>
+<p>先手が圧倒的に有利なこの遊戯には、独特の作法がある。後手は、初手を見て「交代」を申し出ることができる。現地ではこれを「先手への礼」と呼び、強い初手ほど礼をもって奪われる——弱い初手に礼は要らない。つまりスワップとは、相手の初手への敬意の表明でもあるのだ。</p>
+<p>本ページの定跡と詰め問題は、この玄素盤を現代の計算で読み解いた記録である。港の酒場の喧騒の中で何百年も打たれてきた手が、証明と統計の言葉でどこまで確かめられるか。それがFLIPFILLという復刻の試みである。</p>
 </div>
 
 <h2>コマと現実版（v4）</h2>
