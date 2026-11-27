@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLIPFILL 現実版キット（印刷用）| 玄素盤</title>
+<style>
+body{margin:0;font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;color:#20242c;background:#faf6ee}
+main{max-width:820px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.5rem;text-align:center;margin:6px 0}
+h2{font-size:1.1rem;border-left:6px solid #b3541e;padding-left:9px;margin:26px 0 10px}
+p{line-height:1.8}
+.note{font-size:.88rem;color:#5a5148}
+.btn{display:block;margin:14px auto;font-size:1rem;padding:10px 22px;border-radius:999px;border:1px solid #b3541e;background:#b3541e;color:#fff;cursor:pointer}
+.boardPrint{width:min(88vw,225mm);aspect-ratio:1/1;margin:10px auto;display:grid;grid-template-columns:repeat(5,1fr);background:url("assets/board.webp") center/cover,#b57a38;border:3px solid #6b4210;border-radius:8px;padding:2.2%;box-sizing:border-box;gap:0}
+.boardPrint div{border:1.6px solid rgba(60,32,0,.75)}
+.rules{display:flex;gap:14px;flex-wrap:wrap}
+.card{flex:1 1 300px;background:#fff;border:1px solid #e3d9c8;border-radius:12px;padding:14px 18px}
+.pzGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pz{background:#fff;border:1px solid #e3d9c8;border-radius:10px;padding:10px}
+.pz h3{margin:0 0 6px;font-size:.92rem}
+.mini{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#8a5a20;padding:3px;border-radius:4px}
+.mini div{aspect-ratio:1/1;background:#d9a75e;border-radius:2px;position:relative}
+.mini i{position:absolute;inset:9%;border-radius:50%;display:block}
+.mini .b{background:radial-gradient(circle at 40% 35%, #4a4d57, #101114 70%)}
+.mini .w{background:radial-gradient(circle at 40% 35%, #ffffff, #ddd5c2 75%)}
+.answers{font-size:.8rem;color:#5a5148;transform:scaleY(-1);margin-top:14px;line-height:1.7}
+footer{text-align:center;font-size:.82rem;color:#8a7d68;margin-top:30px}
+@page{size:A4;margin:12mm}
+@media print{
+ body{background:#fff}
+ .btn,.noprint{display:none}
+ main{max-width:none;padding:0}
+ .pz{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<main>
+<h1>FLIPFILL 現実版キット</h1>
+<p class="note" style="text-align:center">架空世界ヴェルカント大陸・港国リヴェールの盤上遊戯「玄素盤（げんそばん）」を、現実の紙とコマで遊ぶための印刷ページです。</p>
+<button class="btn" onclick="window.print()">このページを印刷する</button>
+
+<h2>盤（A4にそのまま印刷）</h2>
+<div class="boardPrint" id="boardPrint"></div>
+<p class="note">印刷すると1マス約42mmになります。市販のリバーシ用コマ（直径35〜40mm程度）が置ける寸法です。コマは白黒の両面コマを25枚用意してください。ない場合は、厚紙を丸く切って片面を黒く塗れば自作できます。</p>
+
+<div class="cards">
+<div class="card">
+<h2 style="margin-top:4px">遊び方</h2>
+<p>① 先手（玄＝黒面）と後手（素＝白面）が交互に、空きマスへ自分の面を上にしてコマを1枚置く。<br>
+② 置いたコマの上下左右に隣り合う相手のコマは、すべて裏返して自分の色にする（斜めは対象外、連鎖なし）。<br>
+③ 25マス全部が埋まったら終わり。自分の色が多い方の勝ち（合計25は奇数なので引き分けなし）。</p>
+</div>
+<div class="card">
+<h2 style="margin-top:4px">作法：スワップ（先手への礼）</h2>
+<p>先手が圧倒的に有利なため、後手には一度だけの権利があります。先手の初手を見て、後手が「交代」と宣言したら、先手と後手が入れ替わり、そのまま後手（元の先手）の番から続けます。強い初手ほど奪われる、港町の礼儀です。</p>
+</div>
+</div>
+
+<h2>詰め玄素盤（全12問）</h2>
+<p class="note">すべて黒（玄）の手番で、勝てる手はちょうど1つだけ。それ以外は全部負けです（完全読みで検証済み）。答えはページ下部に上下反転で印刷されます。</p>
+<div class="pzGrid" id="pzGrid"></div>
+<div class="answers" id="answers"></div>
+
+<footer>FLIPFILL 現実版キット — Auto Lab #5 / 作：Tosh1</footer>
+</main>
+<script>
+"use strict";
+const bp=document.getElementById("boardPrint");
+for(let i=0;i<25;i++)bp.appendChild(document.createElement("div"));
+function cellName(i){return `${(i/5|0)+1}行${i%5+1}列`;}
+fetch("puzzles.json").then(r=>r.json()).then(d=>{
+  const grid=document.getElementById("pzGrid");
+  for(const p of d.puzzles){
+    const box=document.createElement("div"); box.className="pz";
+    const h=document.createElement("h3"); h.textContent=`第${p.id}問（${p.tier}・残り${p.empties}手）`; box.appendChild(h);
+    const mini=document.createElement("div"); mini.className="mini";
+    for(let i=0;i<25;i++){ const c=document.createElement("div"); if(p.board[i]!==0){ const s=document.createElement("i"); s.className=p.board[i]===1?"b":"w"; c.appendChild(s);} mini.appendChild(c); }
+    box.appendChild(mini); grid.appendChild(box);
+  }
+  document.getElementById("answers").textContent="答え："+d.puzzles.map(p=>`第${p.id}問 ${cellName(p.best_move)}`).join("　／　");
+}).catch(()=>{ document.getElementById("answers").textContent="問題データを読み込めませんでした。"; });
+</script>
+</body>
+</html>
