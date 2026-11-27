@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZY9E6YLPBM"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){ dataLayer.push(arguments); }
+gtag('js', new Date());
+gtag('config', 'G-ZY9E6YLPBM');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLIPFILL（フリップフィル）| Auto Lab</title>
+<style>
+  body { font-family: sans-serif; background:#14161c; color:#e8eaf0; margin:0; padding:16px; }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; margin-top: 2em; }
+  .board { display:grid; grid-template-columns: repeat(5, 56px); gap:6px; margin: 12px 0; }
+  .cell { width:56px; height:56px; border-radius:10px; border:1px solid #3a3f4f; background:#222633; cursor:pointer; font-size:1.3rem; display:flex; align-items:center; justify-content:center; color:#fff; }
+  .cell.black { background:#05070c; color:#f5f6fa; border:2px solid #565e75; border-radius:50%; }
+  .cell.white { background:#e8eaf0; color:#14161c; border:2px solid #e8eaf0; border-radius:50%; }
+  .cell:disabled { cursor:default; opacity:.92; }
+  .heat { display:grid; grid-template-columns: repeat(5, 56px); gap:6px; }
+  .hcell { width:56px; height:56px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.78rem; color:#14161c; font-weight:bold; }
+  button { background:#39415c; color:#fff; border:none; padding:8px 14px; border-radius:8px; cursor:pointer; margin-right:8px; }
+  .note { color:#aab; font-size:.9rem; line-height:1.7; }
+  a { color:#9fc1ff; }
+</style>
+</head>
+<body>
+<main>
+<h1>FLIPFILL（フリップフィル）</h1>
+<p class="note">Auto Lab 第5弾（オートラボ2）。2026-11-27 に設計と事前計算の初回分までを実施した、新作の抽象戦略ゲームです。</p>
+
+<h2>ルール（3行）</h2>
+<p class="note">
+5×5の盤に、先手（●白石）と後手（○黒枠）が交互に自分の石を1つ置きます。<br>
+置いた石に上下左右で隣り合う敵の石は、すべて自分の色にひっくり返ります（斜めは対象外、連鎖なし）。<br>
+盤が全部埋まったら（25手）石の多い方の勝ち。合計25は奇数なので引き分けはありません。<br>
+バランス調整：先手の1手目の後に、後手は色を交換（スワップ）できます。
+</p>
+
+<h2>遊ぶ（対・簡易AI）</h2>
+<div id="status">あなたの手番です（●）。空きマスをタップしてください。</div>
+<div class="board" id="board"></div>
+<button id="reset">最初から</button>
+<p class="note">AIは「今すぐ石差が最大になる手＋少しのランダム」で指す簡易版です。スワップの対人ルールは文章ルールとして記載のみで、この簡易版では未実装です。事前計算データを使った解析盤は今後の制作分です。</p>
+
+<h2>事前計算 v1：初手マップ（2026-11-27、Google Colabで計算）</h2>
+<p class="note">
+全25初手について、その初手から続けた場合の先手勝率を測りました。<br>
+<b>ランダムプレイアウト</b>：各初手20万局。結果は全初手で <b>0.715〜0.723（平均0.719）</b> とほぼ一定でした。
+「どの初手か」よりも「先手であること」自体が約72%の勝率を生む、つまり先手有利は手の位置ではなく手番の構造（25手目＝最後の手を先手が打つ等）から来ている、というのが初回の発見です。だからスワップが要ります。<br>
+<b>ヒューリスティクス混ぜプレイアウト</b>：各初手3,000局。0.678〜0.729 と差が開き、角（左上）が最高0.729でした。ただし3,000局では誤差が±約1.7ポイントあり、参考値です。
+</p>
+<div class="heat" id="heat"></div>
+<p class="note">色が明るいマスほど、その初手からの先手勝率が高い（ヒューリスティクス混ぜプレイアウトの値、%表示）。</p>
+
+<h2>厳密ソルバーの確認</h2>
+<p class="note">
+空き10マスの終盤局面5件を厳密ソルバー（全探索＋置換表）で解き、すべて1.5〜4.4秒で「証明された勝敗」と最善手が得られました（Colab CPU実測）。
+序盤は統計（プレイアウト勝率）、終盤は証明、と表示を分けるのがこの作品の核です。証明の実用範囲は空き10前後が目安です（空き12の難しい局面ではローカル実測90秒）。
+</p>
+
+<h2>先行例との差（車輪の再発明チェック）</h2>
+<p class="note">
+「自作ゲーム＋AI自己対戦＋ブラウザ対戦」は2026年10月に Crosshair という先行作があります。本作は対戦そのものではなく、
+①全初手の勝率マップと公平な初手の一覧、②終盤の証明つき解析、③読める定跡本、を本体にする点で分けています。
+祖先ゲームとの差：リバーシは「挟んだ石だけ・直線」ですが本作は「隣接すべて・配置のみ」。アタックスにある移動・複製はありません。
+</p>
+<p class="note">データ：<a href="data.json">data.json</a>（初手マップと厳密解チェックの要約）／ 計算ノートブックは Google Colab 上に保存済み。制作記録は Auto Lab のログにあります。</p>
+</main>
+<script>
+const N=5, C=25;
+const NB=[]; for(let i=0;i<C;i++){const r=Math.floor(i/N),c=i%N;const a=[];if(r>0)a.push(i-N);if(r<N-1)a.push(i+N);if(c>0)a.push(i-1);if(c<N-1)a.push(i+1);NB.push(a);}
+let board, turn, over;
+const boardEl=document.getElementById('board'), statusEl=document.getElementById('status');
+function apply(b,m,p){const nb=b.slice();nb[m]=p;for(const j of NB[m]) if(nb[j]===-p) nb[j]=p;return nb;}
+function legal(b){const a=[];b.forEach((v,i)=>{if(v===0)a.push(i)});return a;}
+function aiMove(b,p){
+  const ms=legal(b); let best=[],bv=-1e9;
+  for(const m of ms){const nb=apply(b,m,p);const v=nb.filter(x=>x===p).length-nb.filter(x=>x===-p).length+Math.random()*0.6;
+    if(v>bv){bv=v;best=[m]}else if(v===bv)best.push(m);}
+  return best[Math.floor(Math.random()*best.length)];
+}
+function render(){
+  boardEl.innerHTML='';
+  board.forEach((v,i)=>{const d=document.createElement('button');d.className='cell'+(v===1?' black':v===-1?' white':'');
+    d.textContent=v===1?'●':v===-1?'○':'';
+    d.disabled=over||v!==0||turn!==1;
+    d.onclick=()=>{board=apply(board,i,1);turn=-1;after();};
+    boardEl.appendChild(d);});
+  const bc=board.filter(x=>x===1).length, wc=board.filter(x=>x===-1).length;
+  if(over){statusEl.textContent=`終了： ● ${bc} 対 ○ ${wc} ― ${bc>wc?'あなたの勝ち':'AIの勝ち'}`;}
+  else statusEl.textContent = turn===1?`あなたの手番です（●）。現在の石数 ● ${bc} 対 ○ ${wc}`:'AIが考え中…';
+}
+function after(){
+  render();
+  if(legal(board).length===0){over=true;render();return;}
+  if(turn===-1){setTimeout(()=>{const m=aiMove(board,-1);board=apply(board,m,-1);turn=1;
+    if(legal(board).length===0)over=true;render();},350);}
+}
+document.getElementById('reset').onclick=()=>{board=Array(C).fill(0);turn=1;over=false;render();};
+board=Array(C).fill(0);turn=1;over=false;render();
+// heatmap (heuristic playout win rates)
+const heat=[0.7293,0.6927,0.6807,0.708,0.719,0.7007,0.713,0.687,0.701,0.71,0.687,0.6923,0.7137,0.7007,0.6783,0.7047,0.706,0.6863,0.706,0.7047,0.714,0.697,0.6863,0.6947,0.716];
+const heatEl=document.getElementById('heat');
+heat.forEach(v=>{const d=document.createElement('div');d.className='hcell';
+  const t=(v-0.67)/(0.73-0.67); d.style.background=`hsl(45, 80%, ${35+t*40}%)`;
+  d.textContent=(v*100).toFixed(1); heatEl.appendChild(d);});
+</script>
+</body>
+</html>
