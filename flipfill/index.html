@@ -30,7 +30,11 @@ button.act:disabled{opacity:.4;cursor:default}
 .status{font-size:1.05rem;min-height:1.8em;text-align:center}
 .score{text-align:center;color:#5a5148;margin:2px 0 8px}
 /* ===== 木盤と石 ===== */
-.boardWrap{display:flex;justify-content:center;margin:10px 0}
+.boardWrap{display:flex;justify-content:center;margin:10px 0;position:relative}
+#swapNotice{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;background:rgba(24,20,16,.93);color:#f6efe0;border:1px solid #d8a441;border-radius:14px;padding:18px 22px;max-width:82%;text-align:center;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+#swapNotice .big{font-size:1.25rem;font-weight:700;letter-spacing:.08em;margin-bottom:6px}
+#swapNotice p{margin:4px 0 12px;font-size:.92rem;line-height:1.6}
+#swapNotice button{font-size:1rem;padding:8px 20px;border-radius:999px;border:1px solid #d8a441;background:#d8a441;color:#241a08;cursor:pointer;font-weight:700}
 .brand{display:flex;align-items:center;gap:16px;margin:10px 0 2px}
 .brandLogo{width:84px;height:84px;border-radius:50%;box-shadow:0 6px 18px rgba(60,35,0,.3);flex:none}
 .brand h1{margin:0;font-size:2.1rem;letter-spacing:.14em}
@@ -114,7 +118,7 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <button class="act" id="swapYes">スワップする（先手と石を交換）</button>
 <button class="act" id="swapNo">スワップしない</button>
 </div>
-<div class="boardWrap"><div id="board3dWrap"></div><div class="board" id="board"></div></div>
+<div class="boardWrap"><div id="board3dWrap"></div><div class="board" id="board"></div><div id="swapNotice"><div class="big">スワップ！</div><p id="swapNoticeText"></p><button id="swapNoticeBtn">白で続ける</button></div></div>
 <p class="note">ルール：空きマスに自分の石を1つ置くと、上下左右に隣り合う敵石が<strong>すべて</strong>自分の色にひっくり返ります（斜めは対象外、連鎖なし）。25手で盤が埋まったら、石の多い方の勝ち。合計25は奇数なので引き分けはありません。先手が強すぎるため、2手目側が最初の1手を見て「スワップ（先手と交代）」できるパイルールを採用。AIは序盤は貪欲、中盤以降は貪欲＋完全読み（空き10以下）で打ちます。石を置く音と反転音には実録サンプル（Kenney Impact Sounds、CC0）を使い、読み込めない環境ではWeb Audio合成に切り替わります。</p>
 </div>
 
@@ -351,7 +355,7 @@ function renderGame(anim={}){
   if(window.FF3D_OK){ p=window.FF3D.sync(G.bd,{placed:anim.placed??-1,flips:anim.flips||[],ghostTurn:G.turn,canPlay:gameCanPlay}); }
   else p=renderBoard(boardEl,gameCells,G.bd,{clickable:i=>clickableSet.has(i),placed:anim.placed??-1,flips:anim.flips||[],lastIdx:anim.placed??-1,ghostTurn:G.turn});
   const nb=G.bd.filter(v=>v===1).length, nw=G.bd.filter(v=>v===-1).length;
-  scoreEl.textContent=`黒 ${nb} ： 白 ${nw}（残り ${25-nb-nw} 手）`;
+  scoreEl.textContent=(G.mode==="ai"?`あなた：${G.humanSide===1?"黒":"白"} ／ `:"")+`黒 ${nb} ： 白 ${nw}（残り ${25-nb-nw} 手）`;
   if(G.over){ statusEl.textContent=`対局終了：黒 ${nb} − 白 ${nw} で ${nb>nw?"黒（"+sideName(1)+"）":"白（"+sideName(-1)+"）"} の勝ちです。`; }
   else if(G.awaitingSwap){ statusEl.textContent="スワップの判断待ちです。"; }
   else{ statusEl.textContent = G.mode==="ai" ? (G.turn===G.humanSide?"あなたの番です（"+(G.turn===1?"黒":"白")+"）。":"AIが考え中…") : `${sideName(G.turn)}（${G.turn===1?"黒":"白"}）の番です。`; }
@@ -365,7 +369,9 @@ function afterMove(placed,flips){
   if(G.moves===1&&!G.swapDone){
     if(G.mode==="ai"){
       if(ROOT_WR[placed]>=0.718){ G.humanSide=-1; G.swapDone=true; sSwap(); renderGame({});
-        statusEl.textContent=`AIがスワップしました。強い初手（黒勝率 ${ROOT_WR[placed].toFixed(3)}）だったので、先手を取られました。あなたは白で、次はあなたの手番です。`; }
+        statusEl.textContent=`AIがスワップしました。強い初手（黒勝率 ${ROOT_WR[placed].toFixed(3)}）だったので、先手を取られました。あなたは白で、次はあなたの手番です。`;
+        document.getElementById("swapNoticeText").textContent=`AIがスワップ（先手への礼）を使いました。強い初手（黒勝率 ${ROOT_WR[placed].toFixed(3)}）だったため、置いた黒石はAIのものになりました。あなたは白で、次はあなたの手番です。`;
+        document.getElementById("swapNotice").style.display="block"; }
       else { G.swapDone=true; setTimeout(aiTurn,520); }
     } else { G.awaitingSwap=true; swapMsg.textContent=`${G.names[-1]}さん：先手の初手（${cellName(placed)}）を見て、スワップしますか？`; swapBox.style.display="flex"; renderGame({}); }
     return;
@@ -377,7 +383,8 @@ function doMove(i){
   applyInPlace(G.bd,i,G.turn); G.moves++; const placed=i; G.turn=-G.turn;
   afterMove(placed,flips);
 }
-function humanMove(i){ if(!G||G.over||G.awaitingSwap)return; if(G.mode==="ai"&&G.turn!==G.humanSide)return; if(G.bd[i]!==0)return; audioInit(); doMove(i); }
+document.getElementById("swapNoticeBtn").addEventListener("click",()=>{ document.getElementById("swapNotice").style.display="none"; });
+function humanMove(i){ if(!G||G.over||G.awaitingSwap)return; document.getElementById("swapNotice").style.display="none"; if(G.mode==="ai"&&G.turn!==G.humanSide)return; if(G.bd[i]!==0)return; audioInit(); doMove(i); }
 let DIFF="normal";
 function aiMoveByDiff(bd,pl){ const es=empties(bd);
   if(DIFF==="weak"){ if(Math.random()<0.55) return es[(Math.random()*es.length)|0]; return greedyMove(bd,pl); }
@@ -499,7 +506,7 @@ if(renderer){
   const pmrem=new THREE.PMREMGenerator(renderer);
   scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
   const camera=new THREE.PerspectiveCamera(36,1,0.1,100);
-  camera.position.set(0,5.6,3.55); camera.lookAt(0,0,0.15);
+  camera.position.set(0,9.15,4.9); camera.lookAt(0,0,0);
   const key=new THREE.DirectionalLight(0xfff2dd,1.6);
   key.position.set(3.2,6,2.2); key.castShadow=true;
   key.shadow.mapSize.set(2048,2048);
