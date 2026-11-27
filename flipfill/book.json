@@ -1,0 +1,362 @@
+{
+ "meta": {
+  "method": "UCT MCTS, heuristic-mixed playouts (heuristic_frac=0.35), seed 20261128",
+  "sims_root": 60000,
+  "sims_responses": 40000,
+  "note": "勝率はすべて先手（黒）視点。統計推定であり証明ではない。",
+  "symmetry_note": "初手は盤の対称性で6クラスにまとめ、訪問数で重み付け平均した値を併記する。個別マスの生の値は探索ノイズを含む（例：23は訪問365回で0.636と低く出たが、同クラスの他マスは0.68〜0.71）。"
+ },
+ "root": [
+  {
+   "move": 20,
+   "visits": 6605,
+   "black_winrate": 0.7296
+  },
+  {
+   "move": 24,
+   "visits": 4307,
+   "black_winrate": 0.7225
+  },
+  {
+   "move": 4,
+   "visits": 3661,
+   "black_winrate": 0.7195
+  },
+  {
+   "move": 0,
+   "visits": 3573,
+   "black_winrate": 0.719
+  },
+  {
+   "move": 14,
+   "visits": 3406,
+   "black_winrate": 0.7181
+  },
+  {
+   "move": 15,
+   "visits": 3286,
+   "black_winrate": 0.7173
+  },
+  {
+   "move": 11,
+   "visits": 2934,
+   "black_winrate": 0.7151
+  },
+  {
+   "move": 10,
+   "visits": 2846,
+   "black_winrate": 0.7143
+  },
+  {
+   "move": 12,
+   "visits": 2736,
+   "black_winrate": 0.7135
+  },
+  {
+   "move": 16,
+   "visits": 2717,
+   "black_winrate": 0.7133
+  },
+  {
+   "move": 3,
+   "visits": 2544,
+   "black_winrate": 0.7119
+  },
+  {
+   "move": 1,
+   "visits": 2262,
+   "black_winrate": 0.7091
+  },
+  {
+   "move": 19,
+   "visits": 2202,
+   "black_winrate": 0.7084
+  },
+  {
+   "move": 22,
+   "visits": 2146,
+   "black_winrate": 0.7078
+  },
+  {
+   "move": 13,
+   "visits": 2004,
+   "black_winrate": 0.7061
+  },
+  {
+   "move": 18,
+   "visits": 1965,
+   "black_winrate": 0.7053
+  },
+  {
+   "move": 2,
+   "visits": 1624,
+   "black_winrate": 0.7001
+  },
+  {
+   "move": 21,
+   "visits": 1616,
+   "black_winrate": 0.6999
+  },
+  {
+   "move": 6,
+   "visits": 1461,
+   "black_winrate": 0.6968
+  },
+  {
+   "move": 7,
+   "visits": 1389,
+   "black_winrate": 0.6955
+  },
+  {
+   "move": 9,
+   "visits": 1373,
+   "black_winrate": 0.6948
+  },
+  {
+   "move": 8,
+   "visits": 1036,
+   "black_winrate": 0.6853
+  },
+  {
+   "move": 17,
+   "visits": 983,
+   "black_winrate": 0.6836
+  },
+  {
+   "move": 5,
+   "visits": 958,
+   "black_winrate": 0.6827
+  },
+  {
+   "move": 23,
+   "visits": 365,
+   "black_winrate": 0.6356
+  }
+ ],
+ "unique_first_moves": [
+  {
+   "move": 0,
+   "name": "隅開き（左上）",
+   "responses": [
+    {
+     "move": 17,
+     "visits": 3609,
+     "black_winrate": 0.698
+    },
+    {
+     "move": 18,
+     "visits": 3254,
+     "black_winrate": 0.7001
+    },
+    {
+     "move": 7,
+     "visits": 2843,
+     "black_winrate": 0.7028
+    },
+    {
+     "move": 6,
+     "visits": 2039,
+     "black_winrate": 0.7106
+    },
+    {
+     "move": 9,
+     "visits": 2035,
+     "black_winrate": 0.7106
+    }
+   ]
+  },
+  {
+   "move": 1,
+   "name": "辺・隅寄り（上辺2）",
+   "responses": [
+    {
+     "move": 2,
+     "visits": 3205,
+     "black_winrate": 0.6911
+    },
+    {
+     "move": 11,
+     "visits": 2711,
+     "black_winrate": 0.6946
+    },
+    {
+     "move": 12,
+     "visits": 2607,
+     "black_winrate": 0.6954
+    },
+    {
+     "move": 7,
+     "visits": 2264,
+     "black_winrate": 0.6988
+    },
+    {
+     "move": 16,
+     "visits": 2230,
+     "black_winrate": 0.6991
+    }
+   ]
+  },
+  {
+   "move": 2,
+   "name": "辺中央開き（上辺中央）",
+   "responses": [
+    {
+     "move": 3,
+     "visits": 3191,
+     "black_winrate": 0.6916
+    },
+    {
+     "move": 7,
+     "visits": 2549,
+     "black_winrate": 0.6964
+    },
+    {
+     "move": 5,
+     "visits": 2464,
+     "black_winrate": 0.6972
+    },
+    {
+     "move": 11,
+     "visits": 2430,
+     "black_winrate": 0.6975
+    },
+    {
+     "move": 0,
+     "visits": 2408,
+     "black_winrate": 0.6977
+    }
+   ]
+  },
+  {
+   "move": 6,
+   "name": "内側角（2行2列）",
+   "responses": [
+    {
+     "move": 22,
+     "visits": 2709,
+     "black_winrate": 0.6955
+    },
+    {
+     "move": 11,
+     "visits": 2647,
+     "black_winrate": 0.6959
+    },
+    {
+     "move": 0,
+     "visits": 2466,
+     "black_winrate": 0.6975
+    },
+    {
+     "move": 7,
+     "visits": 2362,
+     "black_winrate": 0.6986
+    },
+    {
+     "move": 14,
+     "visits": 2338,
+     "black_winrate": 0.6972
+    }
+   ]
+  },
+  {
+   "move": 7,
+   "name": "内側辺（2行3列）",
+   "responses": [
+    {
+     "move": 18,
+     "visits": 2829,
+     "black_winrate": 0.6971
+    },
+    {
+     "move": 11,
+     "visits": 2631,
+     "black_winrate": 0.6986
+    },
+    {
+     "move": 13,
+     "visits": 2486,
+     "black_winrate": 0.6999
+    },
+    {
+     "move": 22,
+     "visits": 2384,
+     "black_winrate": 0.7009
+    },
+    {
+     "move": 0,
+     "visits": 2315,
+     "black_winrate": 0.7015
+    }
+   ]
+  },
+  {
+   "move": 12,
+   "name": "中央開き",
+   "responses": [
+    {
+     "move": 8,
+     "visits": 3328,
+     "black_winrate": 0.6884
+    },
+    {
+     "move": 20,
+     "visits": 3174,
+     "black_winrate": 0.6894
+    },
+    {
+     "move": 18,
+     "visits": 2993,
+     "black_winrate": 0.6906
+    },
+    {
+     "move": 3,
+     "visits": 2968,
+     "black_winrate": 0.6907
+    },
+    {
+     "move": 6,
+     "visits": 2339,
+     "black_winrate": 0.696
+    }
+   ]
+  }
+ ],
+ "findings": [
+  "MCTSでも初手の差は小さい（先手勝率0.713〜0.730）。訪問数は四隅に集中し、隅が最有力群。",
+  "後手の最善応手は、先手勝率を約0.72から0.69前後まで下げる。応手は隅の石に隣接してすぐ返す手ではなく、離れた場所に打つ手が上位に来た（MCTSの傾向であり証明ではない）。",
+  "中央開きへの応手が最も先手勝率を下げた（0.688前後）。"
+ ],
+ "root_symmetry_averaged": {
+  "corner": 0.7238,
+  "0": 0.7238,
+  "4": 0.7238,
+  "20": 0.7238,
+  "24": 0.7238,
+  "edge_near_corner": 0.7045,
+  "1": 0.7045,
+  "3": 0.7045,
+  "5": 0.7045,
+  "9": 0.7045,
+  "15": 0.7045,
+  "17": 0.7045,
+  "19": 0.7045,
+  "23": 0.7045,
+  "edge_mid": 0.7119,
+  "2": 0.7119,
+  "10": 0.7119,
+  "14": 0.7119,
+  "22": 0.7119,
+  "inner_corner": 0.7037,
+  "6": 0.7037,
+  "8": 0.7037,
+  "16": 0.7037,
+  "18": 0.7037,
+  "inner_edge": 0.7063,
+  "7": 0.7063,
+  "11": 0.7063,
+  "13": 0.7063,
+  "21": 0.7063,
+  "center": 0.7135,
+  "12": 0.7135
+ }
+}
