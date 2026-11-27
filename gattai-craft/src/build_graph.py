@@ -10,7 +10,7 @@ def build(elements_path, results_paths, out_path):
     for rp in results_paths:
         for line in open(rp):
             r = json.loads(line)
-            if not r.get("ok"): continue
+            if r.get("ok") is False: continue
             key = "|".join(sorted([r["a"], r["b"]]))
             if key in recipes: continue
             recipes[key] = r["result"]
