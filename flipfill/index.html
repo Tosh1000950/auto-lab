@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FLIPFILL（フリップフィル）| 5×5反転ゲームの定跡書</title>
-<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="icon" type="image/png" href="assets/favicon.png?v=2">
 <meta property="og:title" content="FLIPFILL（フリップフィル）— 玄素盤">
 <meta property="og:description" content="置くと隣が全部ひっくり返る。5×5・25手の反転ゲーム。定跡・証明済み詰め問題・リアルタイム3D盤面。">
 <meta property="og:image" content="assets/logo_c3d.webp">
@@ -59,7 +59,7 @@ button.act:disabled{opacity:.4;cursor:default}
 .disc{position:absolute;inset:0;transform-style:preserve-3d;transition:transform var(--flipdur) ease-out}
 .disc.w{transform:rotateY(180deg)}
 .disc.hide{display:none}
-.edge{position:absolute;inset:-1px;border-radius:50%;background:linear-gradient(180deg,#3c3f46,#0e0e10);transform:translateZ(-3px)}
+.edge{position:absolute;inset:-1px;border-radius:50%;background:linear-gradient(180deg,#3c3f46,#0e0e10);transform:translateZ(-3px);backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:translateZ(1.5px)}
 .face.b{background:radial-gradient(circle at 50% 34%, #41434c, #141519 56%, #060607 88%);box-shadow: inset 0 -3px 6px rgba(0,0,0,.8), inset 0 2px 5px rgba(255,255,255,.28), 0 3px 5px rgba(40,20,0,.55)}
 .face.b::after{content:"";position:absolute;left:30%;top:17%;width:34%;height:14%;border-radius:50%;background:rgba(255,255,255,.34);filter:blur(2px);transform:rotate(-18deg)}
@@ -110,6 +110,8 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <span class="note">コマ：</span>
 <button class="act skin on" data-s="plain">白黒コマ</button>
 <button class="act skin" data-s="crest">紋様コマ</button>
+<span class="note">AIのスワップ：</span>
+<button class="act" id="swapRuleBtn">なし</button>
 </div>
 <div class="status" id="status"></div>
 <div class="score" id="score"></div>
@@ -119,7 +121,7 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <button class="act" id="swapNo">スワップしない</button>
 </div>
 <div class="boardWrap"><div id="board3dWrap"></div><div class="board" id="board"></div><div id="swapNotice"><div class="big">スワップ！</div><p id="swapNoticeText"></p><button id="swapNoticeBtn">白で続ける</button></div></div>
-<p class="note">ルール：空きマスに自分の石を1つ置くと、上下左右に隣り合う敵石が<strong>すべて</strong>自分の色にひっくり返ります（斜めは対象外、連鎖なし）。25手で盤が埋まったら、石の多い方の勝ち。合計25は奇数なので引き分けはありません。先手が強すぎるため、2手目側が最初の1手を見て「スワップ（先手と交代）」できるパイルールを採用。AIは序盤は貪欲、中盤以降は貪欲＋完全読み（空き10以下）で打ちます。石を置く音と反転音には実録サンプル（Kenney Impact Sounds、CC0）を使い、読み込めない環境ではWeb Audio合成に切り替わります。</p>
+<p class="note">ルール：空きマスに自分の石を1つ置くと、上下左右に隣り合う敵石が<strong>すべて</strong>自分の色にひっくり返ります（斜めは対象外、連鎖なし）。25手で盤が埋まったら、石の多い方の勝ち。合計25は奇数なので引き分けはありません。先手が強すぎるため、2手目側が最初の1手を見て「スワップ（先手と交代）」できるパイルールを採用（2人対戦用。AI対戦では初期設定で無効で、上のボタンで有効化できます）。AIは序盤は貪欲、中盤以降は貪欲＋完全読み（空き10以下）で打ちます。石を置く音と反転音には実録サンプル（Kenney Impact Sounds、CC0）を使い、読み込めない環境ではWeb Audio合成に切り替わります。</p>
 </div>
 
 <h2>解析盤（証明済み／統計推定を分けて表示）</h2>
@@ -363,21 +365,21 @@ function renderGame(anim={}){
   return p;
 }
 function afterMove(placed,flips){
-  const p=renderGame({placed,flips}); playMoveSounds(flips,p);
+  const p=renderGame({placed,flips}); playMoveSounds(flips,p); const animWait=Math.max(430,(p&&p.total?p.total:0)+170);
   if(empties(G.bd).length===0){ G.over=true; renderGame({});
     if(G.mode==="ai"){ const nb=G.bd.filter(v=>v===1).length; const humanWon=(nb>12.5)===(G.humanSide===1); humanWon?sWin():sLose(); } else sWin();
     return; }
   if(G.moves===1&&!G.swapDone){
     if(G.mode==="ai"){
-      if(ROOT_WR[placed]>=0.718){ G.humanSide=-1; G.swapDone=true; sSwap(); renderGame({});
+      if(SWAP_VS_AI&&ROOT_WR[placed]>=0.718){ G.humanSide=-1; G.swapDone=true; sSwap(); renderGame({});
         statusEl.textContent=`AIがスワップしました。強い初手（黒勝率 ${ROOT_WR[placed].toFixed(3)}）だったので、先手を取られました。あなたは白で、次はあなたの手番です。`;
         document.getElementById("swapNoticeText").textContent=`AIがスワップ（先手への礼）を使いました。強い初手（黒勝率 ${ROOT_WR[placed].toFixed(3)}）だったため、置いた黒石はAIのものになりました。あなたは白で、次はあなたの手番です。`;
         document.getElementById("swapNotice").style.display="block"; }
-      else { G.swapDone=true; setTimeout(aiTurn,520); }
+      else { G.swapDone=true; setTimeout(aiTurn,animWait); }
     } else { G.awaitingSwap=true; swapMsg.textContent=`${G.names[-1]}さん：先手の初手（${cellName(placed)}）を見て、スワップしますか？`; swapBox.style.display="flex"; renderGame({}); }
     return;
   }
-  if(G.mode==="ai"&&G.turn!==G.humanSide) setTimeout(aiTurn,520);
+  if(G.mode==="ai"&&G.turn!==G.humanSide) setTimeout(aiTurn,animWait);
 }
 function doMove(i){
   const flips=flipsOf(G.bd,i,G.turn).slice().sort((a,b)=>a-b);
@@ -410,6 +412,11 @@ const soundBtn=document.getElementById("soundBtn");
 function syncSoundBtn(){ soundBtn.textContent=muted?"🔇 音なし":"🔊 音あり"; }
 soundBtn.addEventListener("click",()=>{ muted=!muted; localStorage.setItem("flipfill_muted",muted?"1":"0"); audioInit(); if(master)master.gain.value=muted?0:0.5; syncSoundBtn(); if(!muted)sPlace(); });
 syncSoundBtn();
+let SWAP_VS_AI=localStorage.getItem("flipfill_swap_ai")==="1";
+const swapRuleBtn=document.getElementById("swapRuleBtn");
+function syncSwapBtn(){ swapRuleBtn.textContent=SWAP_VS_AI?"あり":"なし"; swapRuleBtn.classList.toggle("on",SWAP_VS_AI); }
+swapRuleBtn.addEventListener("click",()=>{ SWAP_VS_AI=!SWAP_VS_AI; localStorage.setItem("flipfill_swap_ai",SWAP_VS_AI?"1":"0"); syncSwapBtn(); });
+syncSwapBtn();
 
 /* ===== 解析盤 ===== */
 const anaEl=document.getElementById("anaBoard");
@@ -531,14 +538,14 @@ if(renderer){
   boardMesh.position.y=-0.11; boardMesh.receiveShadow=true; scene.add(boardMesh);
   const frame=new THREE.Mesh(new THREE.BoxGeometry(5.7,0.14,5.7),new THREE.MeshStandardMaterial({color:0x4a2d12,roughness:0.85}));
   frame.position.y=-0.26; scene.add(frame);
-  const matBlack=new THREE.MeshPhysicalMaterial({color:0x131316,roughness:0.34,clearcoat:1.0,clearcoatRoughness:0.14,envMapIntensity:1.1});
-  const matWhite=new THREE.MeshPhysicalMaterial({color:0xf6f1e6,roughness:0.30,clearcoat:0.9,clearcoatRoughness:0.20,envMapIntensity:0.95});
+  const matBlack=new THREE.MeshPhysicalMaterial({color:0x131316,roughness:0.34,clearcoat:1.0,clearcoatRoughness:0.14,envMapIntensity:0.55});
+  const matWhite=new THREE.MeshPhysicalMaterial({color:0xf6f1e6,roughness:0.30,clearcoat:0.9,clearcoatRoughness:0.20,envMapIntensity:0.7});
   const matGold=new THREE.MeshStandardMaterial({color:0xd8a441,metalness:0.9,roughness:0.32});
   const matDarkStar=new THREE.MeshStandardMaterial({color:0x23242a,metalness:0.2,roughness:0.5});
   const H=0.065,B=0.035,R=0.42;
   function halfGeo(sign){ const pts=[]; const P=(r,y)=>pts.push(new THREE.Vector2(r,y));
     P(0,0); P(R,0); P(R,H-B); P(R-B,H); P(0.30,H-0.010); P(0.12,H-0.016); P(0,H-0.018);
-    const g=new THREE.LatheGeometry(pts,56); if(sign<0) g.scale(1,-1,1); return g; }
+    const g=new THREE.LatheGeometry(pts,56); if(sign<0){ g.scale(1,-1,1); const ia=g.getIndex().array; for(let i=0;i<ia.length;i+=3){ const t=ia[i+1]; ia[i+1]=ia[i+2]; ia[i+2]=t; } } return g; }
   const geoTop=halfGeo(1), geoBot=halfGeo(-1);
   function starGeo(){ const sh=new THREE.Shape(); const pts=[];
     for(let k=0;k<8;k++){ const a=k*Math.PI/4-Math.PI/2; const rad=k%2===0?0.16:0.055; pts.push([Math.cos(a)*rad,Math.sin(a)*rad]); }
@@ -552,9 +559,9 @@ if(renderer){
     const mB=ghost?mT:(up===1?matWhite:matBlack);
     const top=new THREE.Mesh(geoTop,mT); top.castShadow=!ghost;
     const bot=new THREE.Mesh(geoBot,mB); bot.castShadow=!ghost;
-    const sTop=new THREE.Mesh(sGeo,up===1?matGold:matDarkStar); sTop.position.y=H-0.017; sTop.visible=false;
-    const sBot=new THREE.Mesh(sGeo,up===1?matDarkStar:matGold); sBot.position.y=-(H-0.017); sBot.rotation.x=Math.PI; sBot.visible=false;
-    g.add(top,bot,sTop,sBot); g.userData={up,stars:[sTop,sBot],topMesh:top,botMesh:bot};
+    const sTop=new THREE.Mesh(sGeo,up===1?matGold:matDarkStar); sTop.position.y=H-0.017; sTop.visible=(skin==='crest');
+    const sBot=new THREE.Mesh(sGeo,up===1?matDarkStar:matGold); sBot.position.y=-(H-0.017); sBot.rotation.x=Math.PI; sBot.visible=(skin==='crest');
+    g.add(top,bot,sTop,sBot); g.userData={up,up0:up,stars:[sTop,sBot],topMesh:top,botMesh:bot};
     return g;
   }
   const discs=Array(25).fill(null);
@@ -562,30 +569,34 @@ if(renderer){
   const tweens=[]; let dirty=true;
   const easeInOutCubic=t=>t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
   const easeOutCubic=t=>1-Math.pow(1-t,3);
-  function addTween(delay,dur,fn,done){ tweens.push({start:performance.now()+delay,dur:Math.max(dur,1),fn,done}); dirty=true; }
-  function flipDisc(d,delay,dur){
-    const base=d.rotation.x, y0=H;
-    addTween(delay,dur,k=>{ const e=easeInOutCubic(k); d.rotation.x=base+Math.PI*e; d.position.y=y0+Math.sin(Math.PI*e)*0.34; },
-    ()=>{ d.rotation.x=base+Math.PI; d.position.y=y0; d.userData.up=-d.userData.up;
-      addTween(0,130,k=>{ d.scale.y=1-0.1*Math.sin(Math.PI*k); },()=>{ d.scale.y=1; }); });
+  function addTween(delay,dur,fn,done,disc){ tweens.push({start:performance.now()+delay,dur:Math.max(dur,1),fn,done,disc}); dirty=true; }
+  function flipDisc(d,delay,dur,desired){
+    for(let i=tweens.length-1;i>=0;i--) if(tweens[i].disc===d) tweens.splice(i,1);
+    const from=d.rotation.x, y0=H, k0=Math.round(from/Math.PI);
+    const parity=k=>((k%2===0)?d.userData.up0:-d.userData.up0);
+    const target=(parity(k0)===desired?k0:k0+1)*Math.PI;
+    if(Math.abs(target-from)<0.01){ d.rotation.x=target; d.userData.up=desired; return; }
+    addTween(delay,dur,k=>{ const e=easeInOutCubic(k); d.rotation.x=from+(target-from)*e; d.position.y=y0+Math.sin(Math.PI*Math.min(Math.abs(target-from)/Math.PI,1)*e)*0.34; },
+    ()=>{ d.rotation.x=target; d.position.y=y0; d.userData.up=desired;
+      addTween(0,130,k=>{ d.scale.y=1-0.1*Math.sin(Math.PI*k); },()=>{ d.scale.y=1; },d); },d);
   }
   function dropDisc(d,dur){
     addTween(0,dur,k=>{ const e=easeOutCubic(k); d.position.y=H+0.55*(1-e); },
-    ()=>{ d.position.y=H; addTween(0,130,k=>{ d.scale.y=1-0.08*Math.sin(Math.PI*k); },()=>{ d.scale.y=1; }); });
+    ()=>{ d.position.y=H; addTween(0,130,k=>{ d.scale.y=1-0.08*Math.sin(Math.PI*k); },()=>{ d.scale.y=1; },d); },d);
   }
   function sync(board,opts){
     const flips=opts.flips||[];
     const raw=flips.length?130+480+(flips.length-1)*55:260;
     let scale=raw>950?950/raw:1; if(RM) scale=0.02;
-    flips.forEach((f,k)=>{ const d=discs[f]; if(d&&d.userData.up!==board[f]) flipDisc(d,(130+k*55)*scale,480*scale); });
+    flips.forEach((f,k)=>{ const d=discs[f]; if(d&&d.userData.up!==board[f]) flipDisc(d,(130+k*55)*scale,480*scale,board[f]); });
     for(let i=0;i<25;i++){ const v=board[i]; let d=discs[i];
       if(v===0&&d){ scene.remove(d); discs[i]=null; }
       else if(v!==0&&!d){ d=makeDisc(v,false); const p=cellPos(i); d.position.set(p.x,H,p.z); scene.add(d); discs[i]=d;
         if(i===opts.placed) dropDisc(d,240*scale); }
-      else if(v!==0&&d&&d.userData.up!==v&&!flips.includes(i)){ flipDisc(d,0,480*scale); }
+      else if(v!==0&&d&&d.userData.up!==v&&!flips.includes(i)){ flipDisc(d,0,480*scale,v); }
     }
     ghost.visible=false; dirty=true;
-    return {dur:Math.round(480*scale),stag:Math.round(55*scale)};
+    return {dur:Math.round(480*scale),stag:Math.round(55*scale),total:flips.length?Math.round((130+480+(flips.length-1)*55)*scale):260};
   }
   const ghost=makeDisc(1,true); ghost.visible=false; scene.add(ghost);
   function setGhostTurn(t){ const u=ghost.userData; const mT=t===1?0x131316:0xf6f1e6;
