@@ -24,6 +24,9 @@
   .progress{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin-bottom:12px}
   .progress .row{display:flex; justify-content:space-between; align-items:baseline; font-size:13px}
   .progress .big{font-size:20px; font-weight:700}
+  .daily{display:none; border:1px dashed var(--line); border-radius:14px; padding:9px 12px; margin-bottom:12px; font-size:14px}
+  .daily.show{display:block}
+  .daily.done{border-style:solid; border-color:#ffb340; color:#ffb340; font-weight:700}
   .bar{height:10px; background:#0b0e14; border-radius:99px; margin-top:8px; overflow:hidden}
   .bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--accent2),var(--accent)); border-radius:99px; transition:width .5s}
   .cauldron{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px 12px; margin-bottom:12px; text-align:center}
@@ -82,6 +85,7 @@
     <div class="row"><span>発見した要素</span><span><span class="big" id="foundCount">0</span> / <span id="totalCount">0</span> 種（<span id="foundPct">0</span>%）</span></div>
     <div class="bar"><i id="barFill"></i></div>
   </div>
+  <div class="daily" id="dailyBox"></div>
 
   <div class="cauldron">
     <div class="slots">
@@ -132,6 +136,26 @@ try {
 } catch(e){}
 let sel = [];
 let lastResult = null;
+
+/* ===== 今日の挑戦（日替わりターゲット） ===== */
+function todayStr(){ const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+function dailyTarget(){
+  const cands = DATA.elements.filter(e => e.depth >= 2);
+  if (!cands.length) return null;
+  return cands[hashCode("daily-" + todayStr()) % cands.length];
+}
+function renderDaily(){
+  const box = $("dailyBox");
+  const t = dailyTarget();
+  if (!t) { box.className = "daily"; box.innerHTML = ""; return; }
+  box.className = "daily show" + (found.has(t.name) ? " done" : "");
+  box.innerHTML = "";
+  const label = document.createElement("span");
+  label.textContent = found.has(t.name)
+    ? "🎉 今日の挑戦クリア！「" + t.name + "」は発見済み"
+    : "🎯 今日の挑戦：「" + t.name + "」（深さ" + t.depth + "）を発見しよう";
+  box.appendChild(label);
+}
 
 const $ = id => document.getElementById(id);
 const tray = $("tray"), dexEl = $("dex");
@@ -199,7 +223,7 @@ function pick(n){
   found.add(res.name); save();
   lastResult = {a, b, name: res.name, isNew, real: res.real};
   showResult(a, b, res, isNew);
-  renderSlots(); renderTray(); renderProgress(); renderDex();
+  renderSlots(); renderTray(); renderProgress(); renderDex(); renderDaily();
 }
 
 function showResult(a, b, res, isNew){
@@ -234,7 +258,7 @@ function renderDex(){
     const nm = document.createElement("div"); nm.className="nm"; nm.textContent = has ? e.name : "？？？";
     const dp = document.createElement("div"); dp.className="dp"; dp.textContent = "深さ " + e.depth;
     d.appendChild(em); d.appendChild(nm); d.appendChild(dp);
-    if (has) d.addEventListener("click", () => showDetail(e));
+    d.addEventListener("click", () => has ? showDetail(e) : showHint(e));
     dexEl.appendChild(d);
   });
 }
@@ -250,6 +274,21 @@ function showDetail(e){
   const hw = document.createElement("div"); hw.className="how";
   if (how) { const [a,b] = how.split("|"); hw.textContent = "作り方：" + EL[a].emoji + a + " ＋ " + EL[b].emoji + b; }
   else hw.textContent = "作り方：最初の要素";
+  box.appendChild(hw);
+}
+
+function showHint(e){
+  const box = $("detail");
+  box.className = "detail show";
+  box.innerHTML = "";
+  const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = "？？？（深さ" + e.depth + "）"; box.appendChild(nm);
+  const hw = document.createElement("div"); hw.className = "how";
+  const how = Object.keys(RECIPES).find(k => RECIPES[k] === e.name);
+  if (how) {
+    const [a, b] = how.split("|");
+    const part = n => found.has(n) ? EL[n].emoji + n : "深さ" + (EL[n].depth ?? "?") + "の要素";
+    hw.textContent = "ヒント：" + part(a) + " ＋ " + part(b) + " の組み合わせらしい";
+  } else hw.textContent = "ヒント：まだ手がかりがない";
   box.appendChild(hw);
 }
 
@@ -309,9 +348,9 @@ async function shareSmart(){
     if (!confirm("発見記録を消して最初からにしますか？")) return;
     found = new Set(DATA.starters); sel = []; lastResult = null; save();
     $("resultCard").className = "card"; $("detail").className = "detail";
-    renderSlots(); renderTray(); renderProgress(); renderDex();
+    renderSlots(); renderTray(); renderProgress(); renderDex(); renderDaily();
   });
-  renderSlots(); renderTray(); renderProgress(); renderDex();
+  renderSlots(); renderTray(); renderProgress(); renderDex(); renderDaily();
 })();
 
 /* test hook */
