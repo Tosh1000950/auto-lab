@@ -40,6 +40,7 @@ button.act:disabled{opacity:.4;cursor:default}
 .cface{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.6rem;font-family:"Hiragino Mincho ProN","Yu Mincho","MS Mincho",serif;backface-visibility:hidden;-webkit-backface-visibility:hidden;box-shadow:inset 0 -6px 12px rgba(0,0,0,.35),inset 0 4px 8px rgba(255,255,255,.25)}
 .cface.b{background:radial-gradient(circle at 50% 34%,#41434c,#141519 60%,#060607);color:#e9b949;border:3px solid #d8a441}
 .cface.w{background:radial-gradient(circle at 50% 34%,#ffffff,#f4efe3 60%,#d6cfbc);color:#23242a;border:3px solid #8a7d68;transform:rotateY(180deg)}
+#tossStartBtn{font-size:1.05rem;padding:10px 26px;border-radius:999px;border:1px solid #d8a441;background:#d8a441;color:#241a08;cursor:pointer;font-weight:700;letter-spacing:.06em}
 #tossCap{color:#f6efe0;font-size:1.05rem;letter-spacing:.06em;text-shadow:0 2px 8px rgba(0,0,0,.7);text-align:center;padding:0 12px;line-height:1.6}
 .brand{display:flex;align-items:center;gap:16px;margin:10px 0 2px}
 .brandLogo{width:84px;height:84px;border-radius:50%;box-shadow:0 6px 18px rgba(60,35,0,.3);flex:none}
@@ -126,7 +127,7 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <button class="act" id="swapYes">スワップする（先手と石を交換）</button>
 <button class="act" id="swapNo">スワップしない</button>
 </div>
-<div class="boardWrap"><div id="board3dWrap"></div><div class="board" id="board"></div><div id="tossOverlay"><div class="coin" id="coin"><div class="cface b">玄</div><div class="cface w">素</div></div><div id="tossCap">玄素のコインで、先手・後手を決めます</div></div><div id="swapNotice"><div class="big">スワップ！</div><p id="swapNoticeText"></p><button id="swapNoticeBtn">白で続ける</button></div></div>
+<div class="boardWrap"><div id="board3dWrap"></div><div class="board" id="board"></div><div id="tossOverlay"><div class="coin" id="coin"><div class="cface b">玄</div><div class="cface w">素</div></div><div id="tossCap">玄素のコインで、先手・後手を決めます</div><button id="tossStartBtn" type="button">ゲームをはじめる</button></div><div id="swapNotice"><div class="big">スワップ！</div><p id="swapNoticeText"></p><button id="swapNoticeBtn">白で続ける</button></div></div>
 <p class="note">ルール：空きマスに自分の石を1つ置くと、上下左右に隣り合う敵石が<strong>すべて</strong>自分の色にひっくり返ります（斜めは対象外、連鎖なし）。25手で盤が埋まったら、石の多い方の勝ち。合計25は奇数なので引き分けはありません。先手が強すぎるため、2手目側が最初の1手を見て「スワップ（先手と交代）」できるパイルールを採用（2人対戦用。AI対戦では初期設定で無効で、上のボタンで有効化できます）。AIは序盤は貪欲、中盤以降は貪欲＋完全読み（空き10以下）で打ちます。石を置く音と反転音には実録サンプル（Kenney Impact Sounds、CC0）を使い、読み込めない環境ではWeb Audio合成に切り替わります。</p>
 </div>
 
@@ -367,6 +368,7 @@ function renderGame(anim={}){
   scoreEl.textContent=(G.mode==="ai"?`あなた：${G.humanSide===1?"黒":"白"} ／ `:"")+`黒 ${nb} ： 白 ${nw}（残り ${25-nb-nw} 手）`;
   if(G.over){ statusEl.textContent=`対局終了：黒 ${nb} − 白 ${nw} で ${nb>nw?"黒（"+sideName(1)+"）":"白（"+sideName(-1)+"）"} の勝ちです。`; }
   else if(G.awaitingSwap){ statusEl.textContent="スワップの判断待ちです。"; }
+  else if(G.tossLock){ statusEl.textContent="「ゲームをはじめる」を押すと、コイントスで先手・後手が決まります。"; }
   else{ statusEl.textContent = G.mode==="ai" ? (G.turn===G.humanSide?"あなたの番です（"+(G.turn===1?"黒":"白")+"）。":"AIが考え中…") : `${sideName(G.turn)}（${G.turn===1?"黒":"白"}）の番です。`; }
   return p;
 }
@@ -407,16 +409,29 @@ function aiTurn(){ if(!G||G.over)return; const m=aiMoveByDiff(G.bd,G.turn); if(m
 document.querySelectorAll(".diff").forEach(b=>b.addEventListener("click",()=>{ DIFF=b.dataset.d; document.querySelectorAll(".diff").forEach(x=>x.classList.toggle("on",x===b)); }));
 document.querySelectorAll(".skin").forEach(b=>b.addEventListener("click",()=>{ document.querySelectorAll(".skin").forEach(x=>x.classList.toggle("on",x===b)); document.querySelectorAll(".board").forEach(el=>el.classList.toggle("crest",b.dataset.s==="crest")); if(window.FF3D) window.FF3D.setSkin(b.dataset.s); }));
 let coinDeg=0, tossTimer=null;
-function startToss(){
+function showTossGate(){
   G.tossLock=true; renderGame({});
-  statusEl.textContent="玄素のコインで先手・後手を決めています…";
-  const ov=document.getElementById("tossOverlay"), coin=document.getElementById("coin"), cap=document.getElementById("tossCap");
+  const ov=document.getElementById("tossOverlay"), coin=document.getElementById("coin"), cap=document.getElementById("tossCap"), btn=document.getElementById("tossStartBtn");
+  coinDeg=Math.round(coinDeg/360)*360;
+  coin.style.transition="none"; coin.style.transform=`rotateY(${coinDeg}deg)`;
+  cap.textContent="玄素のコインで、先手・後手を決めます";
+  btn.style.display="block";
+  ov.style.display="flex"; ov.onclick=null;
+  statusEl.textContent="「ゲームをはじめる」を押すと、コイントスで先手・後手が決まります。";
+  btn.onclick=e=>{ e.stopPropagation(); startToss(); };
+}
+function startToss(){
+  const ov=document.getElementById("tossOverlay"), coin=document.getElementById("coin"), cap=document.getElementById("tossCap"), btn=document.getElementById("tossStartBtn");
+  btn.style.display="none";
   cap.textContent="玄（げん）が出れば先手（黒）、素（そ）が出れば後手（白）";
-  ov.style.display="flex";
+  statusEl.textContent="玄素のコインで先手・後手を決めています…";
   const playerFirst=Math.random()<0.5;
   const wantMod=playerFirst?0:180;
-  coinDeg+=360*5+((wantMod-(coinDeg%360)+360)%360);
-  requestAnimationFrame(()=>{ coin.style.transition="transform 1.35s cubic-bezier(.12,.61,.22,1)"; coin.style.transform=`rotateY(${coinDeg}deg)`; });
+  const startDeg=coinDeg;
+  coinDeg+=360*5+((wantMod-(startDeg%360)+360)%360);
+  coin.style.transition="none"; coin.style.transform=`rotateY(${startDeg}deg)`;
+  void coin.offsetWidth;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ coin.style.transition="transform 1.35s cubic-bezier(.12,.61,.22,1)"; coin.style.transform=`rotateY(${coinDeg}deg)`; }));
   clearTimeout(tossTimer);
   tossTimer=setTimeout(()=>finishToss(playerFirst,false),1500);
   ov.onclick=()=>finishToss(playerFirst,true);
@@ -426,7 +441,7 @@ function finishToss(playerFirst,skipped){
   clearTimeout(tossTimer);
   const coin=document.getElementById("coin"), cap=document.getElementById("tossCap"), ov=document.getElementById("tossOverlay");
   if(skipped){ coin.style.transition="none"; coin.style.transform=`rotateY(${coinDeg}deg)`; }
-  G.humanSide=playerFirst?1:-1; G.tossLock=false;
+  G.humanSide=playerFirst?1:-1; G.tossLock=false; ov.onclick=null;
   cap.textContent=playerFirst?"玄（げん）！ あなたが先手（黒）です":"素（そ）！ あなたは後手（白）、AIが先手です";
   renderGame({});
   statusEl.textContent=playerFirst?"コイントス：玄（げん）。あなたの番です（黒）。":"コイントス：素（そ）。あなたは白です。AIが先手を打ちます。";
@@ -440,7 +455,7 @@ function newGame(mode){
   document.getElementById("modeAI").classList.toggle("on",G.mode==="ai");
   document.getElementById("mode2P").classList.toggle("on",G.mode==="2p");
   document.getElementById("swapNotice").style.display="none";
-  if(G.mode==="ai") startToss(); else renderGame({});
+  if(G.mode==="ai") showTossGate(); else renderGame({});
 }
 document.getElementById("modeAI").addEventListener("click",()=>newGame("ai"));
 document.getElementById("mode2P").addEventListener("click",()=>newGame("2p"));
