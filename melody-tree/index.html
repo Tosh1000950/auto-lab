@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音の系統樹 ― 機械が進化させた旋律の化石記録</title>
+<meta name="description" content="遺伝的アルゴリズムが数千万個体の旋律を進化させた記録を、聴ける系統樹として公開する実験。祖先から子孫へ、進化を耳でたどる。">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZY9E6YLPBM"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-ZY9E6YLPBM');</script>
+<style>
+:root{--ink:#20242b;--paper:#f7f3ea;--accent:#b4551f;--gold:#d8a441;--card:#fffdf7;--line:#ddd3bd}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.75}
+.wrap{max-width:1060px;margin:0 auto;padding:20px 16px 60px}
+header.site{padding:26px 0 6px;text-align:center}
+h1{font-size:2rem;letter-spacing:.14em;margin:0 0 4px;font-family:"Hiragino Mincho ProN","Yu Mincho",serif}
+.sub{color:#5c5648;max-width:720px;margin:6px auto}
+h2{border-left:6px solid var(--accent);padding-left:10px;margin:34px 0 12px;font-size:1.25rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:12px 0}
+.stats{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:14px 0 2px}
+.stat{background:#2a2118;color:#f3e9d2;border-radius:12px;padding:8px 16px;text-align:center;min-width:128px}
+.stat b{display:block;font-size:1.25rem;color:var(--gold)}
+.stat span{font-size:.78rem;opacity:.85}
+.islands{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.isl{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;text-align:left;font-size:.85rem;line-height:1.45}
+.isl:hover{border-color:var(--accent)}
+.isl.on{background:#2a2118;color:#f3e9d2;border-color:#2a2118}
+.isl small{display:block;opacity:.75;font-size:.72rem}
+#treeWrap{position:relative;background:#171310;border-radius:14px;overflow:hidden}
+#tree{display:block;width:100%;height:560px;touch-action:none;cursor:grab}
+#tree:active{cursor:grabbing}
+.treeTools{position:absolute;right:10px;top:10px;display:flex;gap:6px}
+.treeTools button{background:rgba(255,253,247,.92);border:1px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:.85rem}
+.legend{font-size:.8rem;color:#5c5648;margin-top:6px}
+.player{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.pinfo{flex:1 1 300px;min-width:260px}
+#roll{display:block;width:100%;height:150px;background:#221b14;border-radius:10px}
+button.act{font-size:1rem;padding:9px 20px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-weight:700}
+button.act.sub{background:#fff;color:var(--accent)}
+button.act:disabled{opacity:.45;cursor:default}
+.note{font-size:.85rem;color:#5c5648}
+.kv{font-size:.9rem}
+.kv b{color:var(--accent)}
+footer{margin-top:44px;text-align:center;color:#8a8270;font-size:.82rem}
+.eraList{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.eraList span{border:1px solid var(--line);border-radius:999px;padding:2px 12px;font-size:.82rem;background:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+<h1>音の系統樹</h1>
+<p class="sub">機械が進化させた旋律の、化石記録。<br>
+遺伝的アルゴリズムが <b id="statEval">―</b> の旋律を生み、淘汰し、残った家系だけをここに並べた。
+どの化石もタップすれば鳴る。祖先から子孫へたどれば、進化が耳で聞ける。</p>
+<div class="stats">
+<div class="stat"><b id="statEval2">―</b><span>評価した旋律の総数</span></div>
+<div class="stat"><b>64の島</b><span>独立に進化した系統</span></div>
+<div class="stat"><b id="statNodes">―</b><span>化石として残った個体</span></div>
+<div class="stat"><b>5000ステップ</b><span>1島あたりの世代交代</span></div>
+</div>
+</header>
+
+<h2>島を選ぶ</h2>
+<div class="card">
+<p class="note">64の島はそれぞれ独立に進化した。島ごとに「時代」の順序も違うので、同じ祖先からでもまったく違う音楽の家系が生まれる。被覆率は、音楽の特徴マップ（密度×音域）のどれだけを埋めたか。</p>
+<div class="islands" id="islands"></div>
+</div>
+
+<h2>系統樹を発掘する</h2>
+<div id="treeWrap">
+<canvas id="tree"></canvas>
+<div class="treeTools">
+<button id="zoomOut" type="button">−</button>
+<button id="zoomIn" type="button">＋</button>
+<button id="zoomFit" type="button">全体</button>
+</div>
+</div>
+<p class="legend">横軸が時間（左が祖先、右が子孫）、背景の帯が「時代」（選択の基準が切り替わる期間）。点の色は適応度（青→金）、大きさは子孫の数。ドラッグで移動、ホイール／ピンチで拡大、タップで選択。</p>
+<div class="eraList" id="eraList"></div>
+
+<div class="card player">
+<div class="pinfo">
+<p class="kv" id="nodeInfo">化石をタップすると、ここに情報が出ます。</p>
+<p>
+<button class="act" id="playBtn" type="button" disabled>▶ この旋律を聴く</button>
+<button class="act sub" id="chainBtn" type="button" disabled>祖先から順に聴く</button>
+</p>
+<p>
+<button class="act sub" id="rootBtn" type="button">第0世代（祖先）を聴く</button>
+<button class="act sub" id="bestBtn" type="button">この島の最良を聴く</button>
+</p>
+<p class="note">音はすべて、その場でノートデータから合成しています（音声ファイルは1つも置いていません）。「祖先から順に聴く」は、選んだ化石の家系を根元から連続再生します。進化の途中で何が変わったか、耳で追えます。</p>
+</div>
+<div style="flex:1 1 320px;min-width:280px">
+<canvas id="roll" width="640" height="150"></canvas>
+<p class="legend">選択中の旋律のピアノロール（横32ステップ、縦は音の高さ）。</p>
+</div>
+</div>
+
+<h2>どうやって作ったか</h2>
+<div class="card">
+<p>1つの旋律は32ステップの音の並び（休符を含む）。コンピュータは大量の旋律をランダムに生み、「音楽らしさ」を測る物差し（コードとの協和、モチーフの反復、音程の動き、リズムの偏りなど）で採点し、良いものを残して少しだけ変えた子を生む——これを64の島で並行して <span id="statEval3">―</span> 回繰り返した。計算は Google Colab の <span id="statDevice">GPU</span> で行った。</p>
+<p>工夫は3つ。①特徴マップ（密度×音域）のマスごとに最良を残す方式（MAP-Elites）で、一つの「正解」に潰れず家系が枝分かれするようにした。②途中で物差しの重みを切り替える「時代」を入れ、選択の圧力が変わることで断続的な変化が起きるようにした。③親は必ず記録済みの個体だけにし、すべての化石の系譜が根元まで切れずにたどれるようにした。</p>
+<p>先行する試みとして、約7000人の聴取者の評価で旋律を進化させた DarwinTunes（2012、実験終了）や、自動作曲の Melomics がある。本作は「人の評価なしに自動で回し終えた大規模な進化の記録を、聴ける系統樹として公開する」点が異なる。なお、旋律の良し悪しの最終判断は機械の物差しではなく、聴く人の耳に委ねられる——第0世代と最良個体を聴き比べて、それを確かめてほしい。</p>
+</div>
+
+<footer>Tosh1 オートラボ第6弾 ／ 計算：Google Colab（Tesla T4）・約15分</footer>
+</div>
+
+<script>
+"use strict";
+const SCALE=[0,2,4,5,7,9,11];
+let AC=null;
+function ac(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended") AC.resume(); return AC; }
+function freqOf(d){ const o=Math.floor((d-1)/7), s=SCALE[(d-1)%7]+12*o; return 261.63*Math.pow(2,s/12); }
+let playTimer=null, playingChain=null;
+function stopPlay(){ if(playTimer){clearTimeout(playTimer); playTimer=null;} playingChain=null; drawRoll(curGenome(), -1); }
+function playGenome(gstr, done, highlight){
+  stopPlay(); const ctx=ac(); const g=[...gstr].map(c=>c.charCodeAt(0)-65);
+  const stepDur=60/138/4; const t0=ctx.currentTime+0.06;
+  g.forEach((v,i)=>{ if(!v) return; const t=t0+i*stepDur;
+    const o1=ctx.createOscillator(), o2=ctx.createOscillator(), gn=ctx.createGain(), fl=ctx.createBiquadFilter();
+    o1.type="triangle"; o1.frequency.value=freqOf(v); o2.type="sine"; o2.frequency.value=freqOf(v)/2;
+    fl.type="lowpass"; fl.frequency.value=2300;
+    gn.gain.setValueAtTime(0,t); gn.gain.linearRampToValueAtTime(0.22,t+0.012);
+    gn.gain.exponentialRampToValueAtTime(0.09,t+stepDur*0.9); gn.gain.exponentialRampToValueAtTime(0.001,t+stepDur*2.2);
+    o1.connect(fl); o2.connect(fl); fl.connect(gn); gn.connect(ctx.destination);
+    o1.start(t); o2.start(t); o1.stop(t+stepDur*2.4); o2.stop(t+stepDur*2.4);
+  });
+  if(highlight){ let i=0; const iv=setInterval(()=>{ drawRoll(gstr, i); i++; if(i>32){clearInterval(iv); drawRoll(gstr,-1);} }, stepDur*1000); }
+  playTimer=setTimeout(()=>{ playTimer=null; if(done) done(); }, (32*stepDur+0.4)*1000);
+}
+function playChain(nodes){
+  stopPlay(); let k=0; playingChain=nodes;
+  const next=()=>{ if(playingChain!==nodes) return; if(k>=nodes.length){ playingChain=null; return; }
+    selectNode(nodes[k].id, false); playGenome(nodes[k].g, ()=>{ k++; next(); }, false); };
+  next();
+}
+
+/* ---------- data ---------- */
+let INDEX=null, ISL=null, byId=new Map(), children=new Map(), roots=[];
+let selected=null;
+const $=id=>document.getElementById(id);
+function fmt(n){ return n>=1e8 ? (n/1e8).toFixed(2)+"億" : n>=1e4 ? (n/1e4).toFixed(1)+"万" : ""+n; }
+async function loadIndex(){
+  INDEX=await (await fetch("data/index.json")).json();
+  $("statEval").textContent=fmt(INDEX.meta.evaluated)+"個体";
+  $("statEval2").textContent=fmt(INDEX.meta.evaluated);
+  $("statEval3").textContent=fmt(INDEX.meta.evaluated)+"個体";
+  $("statNodes").textContent=fmt(INDEX.meta.kept_nodes);
+  $("statDevice").textContent = INDEX.meta.device==="cuda" ? "GPU" : "CPU（GPUが割り当てられなかったため）";
+  const box=$("islands");
+  INDEX.islands.forEach(s=>{ const b=document.createElement("button"); b.className="isl"; b.type="button";
+    b.innerHTML=`${s.name}<small>被覆率 ${Math.round(s.coverage/64*100)}% ／ 化石 ${fmt(s.nodes)}</small>`;
+    b.onclick=()=>{ [...box.children].forEach(x=>x.classList.remove("on")); b.classList.add("on"); loadIsland(s.island); };
+    box.appendChild(b); });
+  box.children[0].classList.add("on"); loadIsland(0);
+}
+async function loadIsland(i){
+  ISL=await (await fetch(`data/island_${i}.json`)).json();
+  byId=new Map(ISL.nodes.map(n=>[n.id,n])); children=new Map(); roots=[];
+  ISL.nodes.forEach(n=>{ if(n.parent<0||!byId.has(n.parent)) roots.push(n); else { if(!children.has(n.parent)) children.set(n.parent,[]); children.get(n.parent).push(n);} });
+  layout(); fitView(); selected=null; updatePanel(); drawRoll(null,-1);
+  $("eraList").innerHTML = ISL.eras.map((e,k)=>`<span>第${k+1}期：${e}</span>`).join("");
+  $("bestBtn").textContent=`${ISL.name}の最良を聴く`;
+}
+
+/* ---------- tree layout & view ---------- */
+const cv=$("tree"), cx2=cv.getContext("2d");
+let view={kx:1,ky:1,ox:14,oy:18}, pos=new Map(), maxStep=1, leafCount=1;
+function layout(){
+  pos=new Map(); maxStep=Math.max(...ISL.nodes.map(n=>n.step),1);
+  const XW=st=>Math.sqrt(st/maxStep)*maxStep;
+  let leaf=0;
+  const assign=n=>{ const kids=(children.get(n.id)||[]).slice().sort((a,b)=>a.step-b.step);
+    if(!kids.length){ pos.set(n.id,{x:XW(n.step),y:leaf++}); return leaf-1; }
+    const ys=kids.map(assign); const y=ys.reduce((a,b)=>a+b,0)/ys.length;
+    pos.set(n.id,{x:XW(n.step),y}); return y; };
+  roots.slice().sort((a,b)=>a.step-b.step).forEach(assign);
+  leafCount=Math.max(leaf,1);
+}
+function fitView(){
+  const r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
+  view.kx=(r.width-36)/maxStep; view.ky=Math.min((r.height-44)/leafCount, 26);
+  view.ox=16; view.oy=22; draw();
+}
+const SX=x=>x*view.kx+view.ox, SY=y=>y*view.ky+view.oy;
+function fitColor(f){ const t=Math.max(0,Math.min(1,(f-0.55)/0.42));
+  const c1=[64,110,180], c2=[216,164,65]; const c=c1.map((v,i)=>Math.round(v+(c2[i]-v)*t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`; }
+function lineageSet(id){ const anc=new Set(), des=new Set(); let cur=byId.get(id);
+  while(cur){ anc.add(cur.id); cur=cur.parent>=0?byId.get(cur.parent):null; }
+  const stack=[id]; while(stack.length){ const c=stack.pop(); (children.get(c)||[]).forEach(k=>{ des.add(k.id); stack.push(k.id); }); }
+  return {anc, des}; }
+function draw(){
+  const dpr=window.devicePixelRatio||1, W=cv.width/dpr, H=cv.height/dpr;
+  cx2.setTransform(dpr,0,0,dpr,0,0); cx2.clearRect(0,0,W,H);
+  const eraLen=(INDEX.meta.steps||5000)/8;
+  cx2.font="11px sans-serif";
+  const XW2=st=>Math.sqrt(st/maxStep)*maxStep;
+  for(let e=0;e<8;e++){ const x0=SX(XW2(e*eraLen)), x1=SX(XW2((e+1)*eraLen));
+    if(e%2===0){ cx2.fillStyle="rgba(255,240,200,0.05)"; cx2.fillRect(x0,0,x1-x0,H); }
+    cx2.fillStyle="rgba(243,233,210,0.55)"; if(ISL) cx2.fillText(ISL.eras[e], x0+5, 14); }
+  if(!ISL) return;
+  const hl = selected!=null ? lineageSet(selected) : null;
+  cx2.lineWidth=1;
+  for(const n of ISL.nodes){ if(n.parent<0||!byId.has(n.parent)) continue;
+    const a=pos.get(n.parent), b=pos.get(n.id); if(!a||!b) continue;
+    const inLine = hl && hl.anc.has(n.id) && hl.anc.has(n.parent);
+    cx2.strokeStyle = inLine ? "rgba(255,205,90,0.95)" : (hl&&hl.des.has(n.id) ? "rgba(160,190,255,0.5)" : "rgba(200,190,170,0.20)");
+    cx2.beginPath(); cx2.moveTo(SX(a.x),SY(a.y));
+    cx2.bezierCurveTo(SX((a.x+b.x)/2),SY(a.y),SX((a.x+b.x)/2),SY(b.y),SX(b.x),SY(b.y)); cx2.stroke(); }
+  for(const n of ISL.nodes){ const p=pos.get(n.id); if(!p) continue;
+    const x=SX(p.x), y=SY(p.y); if(x<-20||x>W+20||y<-20||y>H+20) continue;
+    const r=Math.max(1.4, Math.min(7, (1.1+Math.log2((n.d||0)+1)*0.8) * Math.min(1.6, Math.max(0.5, view.kx*22)) ));
+    cx2.beginPath(); cx2.arc(x,y,r,0,7);
+    cx2.fillStyle = (selected===n.id) ? "#ffd75e" : fitColor(n.f); cx2.fill();
+    if(selected===n.id){ cx2.lineWidth=2; cx2.strokeStyle="#fff"; cx2.stroke(); cx2.lineWidth=1; } }
+}
+function curGenome(){ return selected!=null && byId.has(selected) ? byId.get(selected).g : null; }
+function selectNode(id, speak=true){ selected=id; updatePanel(); draw();
+  const g=curGenome(); drawRoll(g,-1); }
+function updatePanel(){
+  const info=$("nodeInfo");
+  if(selected==null||!byId.has(selected)){ info.innerHTML="化石をタップすると、ここに情報が出ます。";
+    $("playBtn").disabled=true; $("chainBtn").disabled=true; return; }
+  const n=byId.get(selected), eraLen=(INDEX.meta.steps||5000)/8, era=ISL.eras[Math.min(7,Math.floor(n.step/eraLen))];
+  info.innerHTML=`<b>${ISL.name}</b> の化石 #${n.id} ／ 第${n.step}ステップ（${era}）<br>適応度 <b>${n.f.toFixed(3)}</b> ／ 子孫 <b>${n.d||0}</b> 個体 ／ 親は ${n.parent<0?"なし（この島の祖先）":"#"+n.parent}`;
+  $("playBtn").disabled=false; $("chainBtn").disabled=false;
+}
+function drawRoll(gstr, hi){
+  const rc=$("roll"), c=rc.getContext("2d"); const W=rc.width, H=rc.height;
+  c.clearRect(0,0,W,H); c.fillStyle="#221b14"; c.fillRect(0,0,W,H);
+  c.strokeStyle="rgba(255,255,255,0.07)";
+  for(let b=0;b<=4;b++){ c.beginPath(); c.moveTo(b*8*(W/32),0); c.lineTo(b*8*(W/32),H); c.stroke(); }
+  if(!gstr) { c.fillStyle="rgba(243,233,210,0.5)"; c.font="13px sans-serif"; c.fillText("旋律を選ぶとここに表示されます", 14, 24); return; }
+  const g=[...gstr].map(ch=>ch.charCodeAt(0)-65), cw=W/32, ch=H/15;
+  g.forEach((v,i)=>{ if(!v) return; const x=i*cw, y=H-(v)*ch;
+    c.fillStyle = (i===hi) ? "#ffd75e" : "#d8a441"; c.fillRect(x+1,y-ch+2,cw-2,ch-3); });
+  if(hi>=0){ c.fillStyle="rgba(255,215,94,0.16)"; c.fillRect(hi*cw,0,cw,H); }
+}
+/* interactions */
+let drag=null, pointers=new Map(), pinchD=0;
+cv.addEventListener("pointerdown",e=>{ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===1) drag={x:e.clientX,y:e.clientY,moved:false}; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointermove",e=>{ if(!pointers.has(e.pointerId)) return;
+  const prev=pointers.get(e.pointerId); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){ const [p,q]=[...pointers.values()]; const d=Math.hypot(p.x-q.x,p.y-q.y);
+    if(pinchD>0){ zoomAt((p.x+q.x)/2,(p.y+q.y)/2, d/pinchD); } pinchD=d; return; }
+  if(drag){ const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>4) drag.moved=true;
+    view.ox+=dx; view.oy+=dy; drag.x=e.clientX; drag.y=e.clientY; draw(); } });
+cv.addEventListener("pointerup",e=>{ pointers.delete(e.pointerId); if(pointers.size<2) pinchD=0;
+  if(drag && !drag.moved){ const r=cv.getBoundingClientRect(); pickNode(e.clientX-r.left, e.clientY-r.top); }
+  drag=null; });
+cv.addEventListener("wheel",e=>{ e.preventDefault(); const r=cv.getBoundingClientRect();
+  zoomAt(e.clientX-r.left, e.clientY-r.top, e.deltaY<0?1.13:0.885); },{passive:false});
+function zoomAt(px,py,f){ const wx=(px-view.ox)/view.kx, wy=(py-view.oy)/view.ky;
+  view.kx*=f; view.ky*=f; view.ox=px-wx*view.kx; view.oy=py-wy*view.ky; draw(); }
+function pickNode(px,py){ let best=null, bd=14;
+  for(const n of ISL.nodes){ const p=pos.get(n.id); if(!p) continue;
+    const d=Math.hypot(SX(p.x)-px, SY(p.y)-py); if(d<bd){ bd=d; best=n.id; } }
+  if(best!=null) selectNode(best); }
+$("zoomIn").onclick=()=>zoomAt(cv.clientWidth/2, cv.clientHeight/2, 1.3);
+$("zoomOut").onclick=()=>zoomAt(cv.clientWidth/2, cv.clientHeight/2, 0.77);
+$("zoomFit").onclick=()=>fitView();
+$("playBtn").onclick=()=>{ const g=curGenome(); if(g) playGenome(g,null,true); };
+$("chainBtn").onclick=()=>{ if(selected==null) return; const chain=[]; let cur=byId.get(selected);
+  while(cur){ chain.unshift(cur); cur=cur.parent>=0?byId.get(cur.parent):null; } playChain(chain); };
+$("rootBtn").onclick=()=>{ const rs=ISL.nodes.filter(n=>n.step===0); if(!rs.length) return;
+  const n=rs[Math.floor(Math.random()*rs.length)]; selectNode(n.id); playGenome(n.g,null,true); };
+$("bestBtn").onclick=()=>{ const t=ISL.final_archive[0]; if(!t) return; selectNode(t.id); const n=byId.get(t.id); if(n) playGenome(n.g,null,true); };
+window.addEventListener("resize",()=>{ if(ISL) fitView(); });
+loadIndex();
+</script>
+</body>
+</html>
