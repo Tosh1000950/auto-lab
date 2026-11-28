@@ -26,6 +26,7 @@
   canvas#board{ width:100%; background:#070a10; border:1px solid var(--line); border-radius:12px; display:block; touch-action:manipulation; }
   .replaybar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:10px 0 4px; }
   .replaybar button, .firebox button{ background:var(--panel2); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:7px 14px; font-size:14px; cursor:pointer; }
+  .replaybar button.on{ background:#f5c542; color:#171106; border-color:#f5c542; font-weight:700; }
   .replaybar button:hover, .firebox button:hover{ border-color:var(--gold); }
   #nowInfo{ font-size:14px; color:var(--gold); min-height:1.6em; }
   #bounceInfo{ font-size:13px; color:var(--dim); }
@@ -87,6 +88,7 @@
   <div class="replaybar">
     <button id="playBtn">▶ 再生</button>
     <button id="speedBtn">速度 ×1</button>
+    <button id="watchBtn">ゆっくり眺める（自動）</button>
     <span id="nowInfo">標本を選ぶと軌道を再生します</span>
     <span id="bounceInfo"></span>
   </div>
@@ -208,19 +210,73 @@ function drawPaths(upto){
   draw(curPath,'#ffd964');
 }
 function stopAnim(){ if(anim) cancelAnimationFrame(anim); anim=null; playing=false; $('playBtn').textContent='▶ 再生'; }
+function pathMetrics(path){ const cum=[0]; for(let i=1;i<path.length;i++){ cum.push(cum[i-1]+Math.hypot(path[i][0]-path[i-1][0], path[i][1]-path[i-1][1])); } return {cum, total:cum[cum.length-1]}; }
+function posAt(path, m, d){
+  const cum=m.cum; let lo=0, hi=cum.length-1;
+  while(lo<hi-1){ const mid=(lo+hi)>>1; if(cum[mid]<=d) lo=mid; else hi=mid; }
+  const segLen=Math.max(1e-9, cum[lo+1]-cum[lo]); const t=Math.min(1, Math.max(0, (d-cum[lo])/segLen));
+  const a=path[lo], b=path[lo+1];
+  return {x:a[0]+(b[0]-a[0])*t, y:a[1]+(b[1]-a[1])*t, dx:b[0]-a[0], dy:b[1]-a[1], idx:lo};
+}
+function drawBall(x, y, dx, dy, color, squashK){
+  const px=x*SX, py=600-y*SY; const ang=Math.atan2(-dy, dx);
+  bctx.save(); bctx.translate(px, py); bctx.rotate(ang);
+  const r=7, sx=1-0.38*squashK, sy=1+0.30*squashK;
+  bctx.shadowColor=color; bctx.shadowBlur=14;
+  const gr=bctx.createRadialGradient(-2,-2,1, 0,0,r);
+  gr.addColorStop(0,'#fffbe8'); gr.addColorStop(0.45,color); gr.addColorStop(1,'rgba(180,120,10,.9)');
+  bctx.fillStyle=gr;
+  bctx.beginPath(); bctx.ellipse(0,0,r*sx,r*sy,0,0,7); bctx.fill();
+  bctx.restore();
+}
+function drawPartial(path, m, d, color, ballState, now){
+  if(!path) return;
+  const pos=posAt(path, m, d);
+  bctx.beginPath(); bctx.moveTo(path[0][0]*SX, 600-path[0][1]*SY);
+  for(let i=1;i<=pos.idx;i++) bctx.lineTo(path[i][0]*SX, 600-path[i][1]*SY);
+  bctx.lineTo(pos.x*SX, 600-pos.y*SY);
+  bctx.strokeStyle=color; bctx.lineWidth=1.6; bctx.globalAlpha=.85; bctx.stroke(); bctx.globalAlpha=1;
+  if(ballState && pos.idx!==ballState.idx){ ballState.idx=pos.idx; ballState.at=now; }
+  const k=ballState ? Math.max(0, 1-(now-ballState.at)/120) : 0;
+  drawBall(pos.x, pos.y, pos.dx, pos.dy, color==='#ffd964'?'#ffd964':'#ff8f8f', k);
+  return pos.idx;
+}
+let WATCH=false, watchQueue=[], watchTimer=null, FROMWATCH=false;
 function playPath(){
   if(!curPath) return;
   stopAnim(); playing=true; $('playBtn').textContent='⏸ 止める';
-  const total=curPath.length; const t0=performance.now(); const dur=Math.min(14000, Math.max(2500, total*9))/speed;
+  const total=curPath.length; const t0=performance.now();
+  const dur=Math.min(14000, Math.max(2500, total*9))/speed;
+  const m1=pathMetrics(curPath), m2=curPath2?pathMetrics(curPath2):null;
+  const bs1={idx:-1, at:0}, bs2={idx:-1, at:0};
   const stepFn=(now)=>{
     const f=Math.min(1,(now-t0)/dur);
-    drawPaths(2+f*(total-2));
-    $('bounceInfo').textContent='反射 ' + Math.min(total-2, Math.floor(f*(total-2))) + ' 回';
-    if(f<1 && playing) anim=requestAnimationFrame(stepFn); else { playing=false; $('playBtn').textContent='▶ もう一度'; }
+    drawBoardBase();
+    if(curPath2) drawPartial(curPath2, m2, f*m2.total, 'rgba(255,107,107,.9)', bs2, now);
+    const idx=drawPartial(curPath, m1, f*m1.total, '#ffd964', bs1, now);
+    $('bounceInfo').textContent='反射 ' + Math.min(total-2, idx) + ' 回';
+    if(f<1 && playing) anim=requestAnimationFrame(stepFn);
+    else { playing=false; $('playBtn').textContent='▶ もう一度';
+      if(WATCH){ watchTimer=setTimeout(nextWatch, 1600); } }
   };
   anim=requestAnimationFrame(stepFn);
 }
+function buildWatchQueue(){
+  const q=[];
+  board.specimens.filter(s=>s.kind!=='chaos').forEach(s=>q.push(()=>selectSpec(s,null)));
+  board.chaos_pairs.forEach(p=>q.push(()=>selectPair(p,null)));
+  board.trapped.forEach(s=>q.push(()=>selectTrapped(s,null)));
+  return q;
+}
+function nextWatch(){
+  if(!WATCH) return;
+  if(!watchQueue.length) watchQueue=buildWatchQueue();
+  const fn=watchQueue.shift(); if(!fn){ WATCH=false; syncWatchBtn(); return; }
+  FROMWATCH=true; fn(); FROMWATCH=false;
+}
+function syncWatchBtn(){ $('watchBtn').textContent = WATCH ? '眺めるのを止める' : 'ゆっくり眺める（自動）'; $('watchBtn').classList.toggle('on', WATCH); }
 function selectSpec(spec, el){
+  cancelWatch();
   document.querySelectorAll('.card').forEach(c=>c.classList.remove('sel'));
   if(el) el.classList.add('sel');
   curPath=spec.path; curPath2=null;
@@ -233,6 +289,7 @@ function selectSpec(spec, el){
   playPath();
 }
 function selectPair(pair, el){
+  cancelWatch();
   document.querySelectorAll('.card').forEach(c=>c.classList.remove('sel'));
   if(el) el.classList.add('sel');
   curPath=pair.a.path; curPath2=pair.b.path;
@@ -244,6 +301,7 @@ function selectPair(pair, el){
   playPath();
 }
 function selectTrapped(spec, el){
+  cancelWatch();
   document.querySelectorAll('.card').forEach(c=>c.classList.remove('sel'));
   if(el) el.classList.add('sel');
   curPath=spec.path; curPath2=null;
@@ -331,6 +389,7 @@ function buildSections(){
   }
 }
 function setBoard(b){
+  if(WATCH){ WATCH=false; if(watchTimer) clearTimeout(watchTimer); syncWatchBtn(); }
   board=b; stopAnim(); curPath=null; curPath2=null;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.id===b.id));
   $('boardStats').innerHTML=b.name+'： 計算 <b>'+b.stats.rays.toLocaleString()+'</b> 本 ／ 脱出 <b>'+b.stats.exit_rate+'%</b> ／ 600回反射しても出られなかった軌道 <b>'+b.stats.trapped.toLocaleString()+'</b> 本';
@@ -363,6 +422,7 @@ async function init(){
   });
 }
 function fire(){
+  cancelWatch();
   const ang=parseFloat($('angInput').value);
   if(isNaN(ang)) return;
   MARK=ang; drawStrip();
@@ -376,7 +436,14 @@ function fire(){
   drawPaths(curPath.length); playPath();
 }
 $('playBtn').onclick=()=>{ if(playing) stopAnim(); else playPath(); };
-$('speedBtn').onclick=()=>{ speed=speed>=4?0.5:speed*2; $('speedBtn').textContent='速度 ×'+speed; if(curPath) playPath(); };
+const SPEEDS=[0.1,0.25,0.5,1,2,4];
+$('speedBtn').onclick=()=>{ const i=SPEEDS.indexOf(speed); speed=SPEEDS[(i+1)%SPEEDS.length]; $('speedBtn').textContent='速度 ×'+speed; if(curPath) playPath(); };
+function cancelWatch(){ if(WATCH && !FROMWATCH){ WATCH=false; if(watchTimer) clearTimeout(watchTimer); syncWatchBtn(); } }
+$('watchBtn').onclick=()=>{
+  if(WATCH){ WATCH=false; if(watchTimer) clearTimeout(watchTimer); stopAnim(); syncWatchBtn(); return; }
+  WATCH=true; speed=0.25; $('speedBtn').textContent='速度 ×0.25';
+  watchQueue=buildWatchQueue(); syncWatchBtn(); nextWatch();
+};
 $('fireBtn').onclick=fire;
 document.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{
   const v=parseFloat($('angInput').value||'0')+parseFloat(b.dataset.n);
