@@ -105,6 +105,7 @@
     <input id="dexSearch" type="search" placeholder="要素を検索">
     <select id="dexCat"><option value="">すべての分類</option></select>
   </div>
+  <div class="mini" id="dexHint" style="margin:2px 0 8px"></div>
   <div class="dex" id="dex"></div>
   <div class="detail" id="detail"></div>
 
@@ -242,10 +243,30 @@ function showResult(a, b, res, isNew){
   card.appendChild(eq);
 }
 
+const CAT_GLYPH = {"自然":"🌿","素材":"🧱","生物":"🐾","食べ物":"🍽️","概念":"💭","乗り物":"🚗","場所":"🏠","季節":"🍂","感情":"😊","技術":"⚙️","職業":"🧑‍🏭","色":"🎨","道具":"🔧","発見":"✨"};
+
 function renderDex(){
   const q = $("dexSearch").value.trim();
   const cat = $("dexCat").value;
   dexEl.innerHTML = "";
+  // 分類ごとの発見数（詰まり対策：あと少しの分類を見せる）
+  const totals = {}, got = {};
+  DATA.elements.filter(e => e.depth !== null && e.depth !== undefined).forEach(e => {
+    totals[e.cat] = (totals[e.cat] || 0) + 1;
+    if (found.has(e.name)) got[e.cat] = (got[e.cat] || 0) + 1;
+  });
+  const sel = $("dexCat");
+  for (let i = 0; i < sel.children.length; i++) { const o = sel.children[i];
+    if ((o.tagName || "").toLowerCase() !== "option") continue;
+    if (!o.value) { const t = Object.values(totals).reduce((a,b)=>a+b,0), g = Object.values(got).reduce((a,b)=>a+b,0); o.textContent = "すべての分類（" + g + "/" + t + "）"; }
+    else o.textContent = o.value + "（" + (got[o.value] || 0) + "/" + (totals[o.value] || 0) + "）";
+  }
+  let near = null;
+  Object.keys(totals).forEach(c => {
+    const rest = totals[c] - (got[c] || 0);
+    if (rest > 0 && (got[c] || 0) > 0 && (!near || rest < near.rest)) near = {cat: c, rest};
+  });
+  $("dexHint").textContent = near ? "あと少しでコンプリート： " + near.cat + "（あと " + near.rest + " つ）" : "";
   const list = DATA.elements
     .filter(e => e.depth !== null && e.depth !== undefined)
     .sort((x,y) => (x.depth - y.depth) || x.name.localeCompare(y.name,"ja"))
@@ -254,9 +275,9 @@ function renderDex(){
     const has = found.has(e.name);
     const d = document.createElement("div");
     d.className = "cell" + (has ? "" : " locked");
-    const em = document.createElement("span"); em.className="em"; em.textContent = has ? e.emoji : "❔";
+    const em = document.createElement("span"); em.className="em"; em.textContent = has ? e.emoji : (CAT_GLYPH[e.cat] || "❔");
     const nm = document.createElement("div"); nm.className="nm"; nm.textContent = has ? e.name : "？？？";
-    const dp = document.createElement("div"); dp.className="dp"; dp.textContent = "深さ " + e.depth;
+    const dp = document.createElement("div"); dp.className="dp"; dp.textContent = "深さ " + e.depth + (has ? "" : "・" + e.cat);
     d.appendChild(em); d.appendChild(nm); d.appendChild(dp);
     d.addEventListener("click", () => has ? showDetail(e) : showHint(e));
     dexEl.appendChild(d);
