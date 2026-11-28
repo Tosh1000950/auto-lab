@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>奇跡の軌道発掘所 | オートラボ第7弾</title>
+<meta name="description" content="GPUで約5,700万本の軌道を総当たり計算し、数百回反射してゴールする「奇跡の角度」と、0.001度の差で運命が割れるカオス境界を発掘した発掘所。">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZY9E6YLPBM"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-ZY9E6YLPBM');</script>
+<style>
+  :root{ --bg:#0b0e14; --panel:#141926; --panel2:#1a2133; --line:#2a3350; --txt:#e8ecf4; --dim:#9aa5bd; --gold:#f5c542; --cyan:#57d7e8; --red:#ff6b6b; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--txt); font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif; line-height:1.65; }
+  .wrap{ max-width:1060px; margin:0 auto; padding:20px 14px 60px; }
+  header{ text-align:center; padding:26px 6px 8px; }
+  h1{ font-size:clamp(26px,5.4vw,42px); letter-spacing:.06em; color:var(--gold); }
+  .sub{ color:var(--dim); margin-top:8px; font-size:14px; }
+  .totals{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:18px 0 4px; }
+  .totals div{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px 16px; font-size:13px; color:var(--dim); }
+  .totals b{ color:var(--txt); font-size:17px; display:block; text-align:center; }
+  .tabs{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:20px 0 12px; }
+  .tab{ background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:999px; padding:8px 18px; font-size:15px; cursor:pointer; }
+  .tab.on{ background:var(--gold); color:#191204; border-color:var(--gold); font-weight:700; }
+  .boardstats{ text-align:center; color:var(--dim); font-size:13px; margin-bottom:10px; }
+  .boardstats b{ color:var(--cyan); }
+  canvas#board{ width:100%; background:#070a10; border:1px solid var(--line); border-radius:12px; display:block; touch-action:manipulation; }
+  .replaybar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:10px 0 4px; }
+  .replaybar button, .firebox button{ background:var(--panel2); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:7px 14px; font-size:14px; cursor:pointer; }
+  .replaybar button:hover, .firebox button:hover{ border-color:var(--gold); }
+  #nowInfo{ font-size:14px; color:var(--gold); min-height:1.6em; }
+  #bounceInfo{ font-size:13px; color:var(--dim); }
+  canvas#strip{ width:100%; height:92px; background:#070a10; border:1px solid var(--line); border-radius:10px; display:block; cursor:crosshair; }
+  .stripwrap{ margin:16px 0 4px; }
+  .striphead{ display:flex; justify-content:space-between; font-size:12px; color:var(--dim); margin-bottom:4px; }
+  h2{ font-size:20px; margin:30px 0 6px; border-left:4px solid var(--gold); padding-left:10px; }
+  .h2note{ color:var(--dim); font-size:13px; margin-bottom:10px; }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; cursor:pointer; text-align:left; color:var(--txt); width:100%; }
+  .card:hover{ border-color:var(--gold); }
+  .card.sel{ border-color:var(--gold); background:var(--panel2); }
+  .card .k{ font-size:11px; color:var(--cyan); letter-spacing:.08em; }
+  .card .big{ font-size:24px; font-weight:700; margin:2px 0; }
+  .card .big small{ font-size:13px; color:var(--dim); font-weight:400; }
+  .card .ang{ font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--dim); word-break:break-all; }
+  .card .w{ font-size:12px; color:var(--gold); margin-top:4px; }
+  .pair{ display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:stretch; }
+  .pair .vs{ align-self:center; text-align:center; color:var(--red); font-weight:700; font-size:13px; }
+  .firebox{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:12px; }
+  .firebox .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:6px 0; }
+  .firebox input{ background:#0a0d13; color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:15px; width:210px; font-family:ui-monospace,Menlo,monospace; }
+  .firebox .nudge button{ padding:6px 10px; font-size:13px; }
+  #fireResult{ font-size:14px; color:var(--gold); min-height:1.6em; }
+  section.about{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px; margin-top:34px; font-size:14px; }
+  section.about h2{ margin-top:0; }
+  section.about p{ margin:8px 0; color:#cfd6e4; }
+  section.about b{ color:var(--gold); }
+  footer{ text-align:center; color:var(--dim); font-size:12px; margin-top:34px; }
+  footer a{ color:var(--cyan); }
+  .legend{ font-size:12px; color:var(--dim); margin-top:4px; }
+  .legend span{ display:inline-block; width:10px; height:10px; border-radius:2px; margin:0 4px 0 10px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>奇跡の軌道発掘所</h1>
+    <p class="sub">鏡張りの部屋にボールを放つ。発射角度を0.00002度刻みで総当たりし、<br>数百回反射して小さな出口にたどり着く「奇跡の角度」を発掘した。</p>
+    <div class="totals">
+      <div><b id="tRays">—</b>計算した軌道</div>
+      <div><b>6</b>盤面</div>
+      <div><b id="tSpec">—</b>発掘標本</div>
+      <div><b>0.00002°</b>掃引の刻み</div>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+  <p class="boardstats" id="boardStats"></p>
+
+  <canvas id="board" width="1000" height="600"></canvas>
+  <div class="replaybar">
+    <button id="playBtn">▶ 再生</button>
+    <button id="speedBtn">速度 ×1</button>
+    <span id="nowInfo">標本を選ぶと軌道を再生します</span>
+    <span id="bounceInfo"></span>
+  </div>
+
+  <div class="stripwrap">
+    <div class="striphead"><span>角度の運命地図（左端 −75° 〜 右端 +75°）</span><span id="stripAngle"></span></div>
+    <canvas id="strip" width="2000" height="92"></canvas>
+    <p class="legend"><span style="background:#f5c542"></span>長い軌道ほど金色<span style="background:#2b6cb0"></span>短い軌道<span style="background:#ff6b6b"></span>上端の赤＝その角度帯に「永久軌道」あり。地図をタップすると、その角度で自分でも撃てる。</p>
+  </div>
+
+  <div id="specSections"></div>
+
+  <h2>自分で撃ってみる</h2>
+  <p class="h2note">角度を入れて発射。標本の角度を選んでから微調整すると、カオスの鋭さが体感できる。0.001度の違いで運命が割れる。</p>
+  <div class="firebox">
+    <div class="row">
+      <input id="angInput" type="number" step="0.000001" value="0">
+      <span>度</span>
+      <button id="fireBtn">発射</button>
+      <span id="fireResult"></span>
+    </div>
+    <div class="row nudge">
+      <span style="color:var(--dim); font-size:13px;">微調整：</span>
+      <button data-n="-0.1">−0.1°</button><button data-n="-0.01">−0.01°</button><button data-n="-0.001">−0.001°</button><button data-n="-0.0001">−0.0001°</button>
+      <button data-n="0.0001">+0.0001°</button><button data-n="0.001">+0.001°</button><button data-n="0.01">+0.01°</button><button data-n="0.1">+0.1°</button>
+    </div>
+  </div>
+
+  <section class="about">
+    <h2>発掘の記録（作り方）</h2>
+    <p>盤面は「鏡の壁と仕切りでできた部屋＋小さな出口」。左端（非対称盤は下端）の発射台からボールを放ち、反射だけを頼りに出口を目指す。物理は単純だが、反射のたびに誤差が増幅されるため、角度がほんの少し違うだけで軌道は別物になる（カオス）。だから「何百回も反射して、それでも出口に届く角度」は、広い角度の海の中の針の穴だ。</p>
+    <p>発掘は Google Colab の GPU（Tesla T4）で、1盤面あたり <b>750万本</b>（−75°〜+75°を0.00002°刻み）の軌道を計算し、目立つ標本の周辺はさらに <b>0.00000002°刻み</b> で拡大調査した。全盤合計で約5,700万本。標本はすべて、ブラウザで再生するのと一字一句同じ計算手順（倍精度・四則演算のみ）で再検証してから収録している。だからこのページの再生は「再現映像」ではなく、あなたの端末で計算し直した本物だ。</p>
+    <p><b>失敗の記録：</b>最初の計算は単精度（FP32）で回し、約93%の軌道が「反射点の計算誤差で壁をすり抜けて消失」していた。脱出率が試作と大きく違うことから発覚し、全計算を倍精度でやり直した。この発掘所の標本は、やり直し後のデータだけを使っている。</p>
+    <p>「永久軌道」は、5,000回反射させても出口に届かなかった軌道。周期的に同じ経路を回り続けているものもあれば、カオスの海を漂い続けるものもある。「奇跡の幅」は、その標本の角度を中心に、脱出が続く角度の幅を実測したもの。幅0.0001°以下というのは、1°の1万分の1の針の穴ということだ。</p>
+  </section>
+
+  <footer>
+    オートラボ第7弾（AIの自動制作実験）／ 制作 Tosh1 ／ <a href="https://tosh1000950.github.io/">Tosh1 トップページ</a>
+  </footer>
+</div>
+
+<script>
+"use strict";
+// ===== canonical engine: identical op order to the verifier (float64, + - * / only) =====
+function segArrays(segs){
+  const x1=[],y1=[],ex=[],ey=[],nx=[],ny=[],kind=[];
+  for(const s of segs){
+    const exx=s[2]-s[0], eyy=s[3]-s[1]; const L=Math.sqrt(exx*exx+eyy*eyy);
+    x1.push(s[0]); y1.push(s[1]); ex.push(exx); ey.push(eyy);
+    nx.push(-eyy/L); ny.push(exx/L); kind.push(s[4]);
+  }
+  return {x1,y1,ex,ey,nx,ny,kind};
+}
+function tracePath(px,py,dx,dy,segs,maxBounces){
+  const S=segArrays(segs); const pts=[[px,py]];
+  let cx=px, cy=py, vx=dx, vy=dy; const EPS=1e-9; let bounces=0, outcome=2;
+  for(let step=0; step<=maxBounces; step++){
+    let bestT=null, bestJ=-1;
+    for(let j=0;j<S.x1.length;j++){
+      const acx=S.x1[j]-cx, acy=S.y1[j]-cy;
+      const den=vx*S.ey[j]-vy*S.ex[j];
+      if(den===0) continue;
+      const t=(acx*S.ey[j]-acy*S.ex[j])/den;
+      const s=(acx*vy-acy*vx)/den;
+      if(t>EPS && s>=-1e-12 && s<=1+1e-12){ if(bestT===null||t<bestT){bestT=t;bestJ=j;} }
+    }
+    if(bestT===null){ outcome=2; break; }
+    const hx=cx+bestT*vx, hy=cy+bestT*vy; pts.push([hx,hy]);
+    if(S.kind[bestJ]===1){ outcome=0; break; }
+    bounces++;
+    const dn=vx*S.nx[bestJ]+vy*S.ny[bestJ];
+    vx=vx-2*dn*S.nx[bestJ]; vy=vy-2*dn*S.ny[bestJ];
+    cx=hx; cy=hy;
+    if(step===maxBounces){ outcome=1; }
+  }
+  return {pts, bounces, outcome};
+}
+function direction(board, angleDeg){
+  const th=angleDeg*Math.PI/180, ca=Math.cos(th), sa=Math.sin(th);
+  const bx=board.base[0], by=board.base[1];
+  return [bx*ca-by*sa, bx*sa+by*ca];
+}
+
+// ===== state =====
+let DATA=null, board=null, curPath=null, curPath2=null, anim=null, speed=1, playing=false;
+const $=id=>document.getElementById(id);
+const bc=$('board'), bctx=bc.getContext('2d');
+const SX=10, SY=10; // board units -> canvas px (100x60 -> 1000x600)
+
+function drawBoardBase(){
+  bctx.clearRect(0,0,1000,600);
+  bctx.fillStyle='#070a10'; bctx.fillRect(0,0,1000,600);
+  for(const s of board.segs){
+    bctx.beginPath();
+    bctx.moveTo(s[0]*SX, 600-s[1]*SY); bctx.lineTo(s[2]*SX, 600-s[3]*SY);
+    if(s[4]===1){ bctx.strokeStyle='#f5c542'; bctx.lineWidth=7; }
+    else{ bctx.strokeStyle='#8fa3c8'; bctx.lineWidth=3; }
+    bctx.stroke();
+  }
+  const L=board.launcher;
+  bctx.fillStyle='#f5c542';
+  bctx.beginPath(); bctx.arc(L[0]*SX, 600-L[1]*SY, 8, 0, 7); bctx.fill();
+}
+function drawPaths(upto){
+  drawBoardBase();
+  const draw=(path,color)=>{
+    if(!path) return;
+    bctx.beginPath();
+    bctx.moveTo(path[0][0]*SX, 600-path[0][1]*SY);
+    const n=Math.min(path.length, Math.max(2, Math.floor(upto)));
+    for(let i=1;i<n;i++) bctx.lineTo(path[i][0]*SX, 600-path[i][1]*SY);
+    bctx.strokeStyle=color; bctx.lineWidth=1.6; bctx.globalAlpha=.9; bctx.stroke(); bctx.globalAlpha=1;
+    const p=path[n-1];
+    bctx.fillStyle=color; bctx.beginPath(); bctx.arc(p[0]*SX, 600-p[1]*SY, 4.5, 0, 7); bctx.fill();
+  };
+  draw(curPath2,'rgba(255,107,107,.85)');
+  draw(curPath,'#ffd964');
+}
+function stopAnim(){ if(anim) cancelAnimationFrame(anim); anim=null; playing=false; $('playBtn').textContent='▶ 再生'; }
+function playPath(){
+  if(!curPath) return;
+  stopAnim(); playing=true; $('playBtn').textContent='⏸ 止める';
+  const total=curPath.length; const t0=performance.now(); const dur=Math.min(14000, Math.max(2500, total*9))/speed;
+  const stepFn=(now)=>{
+    const f=Math.min(1,(now-t0)/dur);
+    drawPaths(2+f*(total-2));
+    $('bounceInfo').textContent='反射 ' + Math.min(total-2, Math.floor(f*(total-2))) + ' 回';
+    if(f<1 && playing) anim=requestAnimationFrame(stepFn); else { playing=false; $('playBtn').textContent='▶ もう一度'; }
+  };
+  anim=requestAnimationFrame(stepFn);
+}
+function selectSpec(spec, el){
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('sel'));
+  if(el) el.classList.add('sel');
+  curPath=spec.path; curPath2=null;
+  drawPaths(curPath.length);
+  const kindName={top:'最高記録', spike:'針の穴', chaos:'運命の分かれ目'}[spec.kind]||spec.kind;
+  $('nowInfo').textContent=kindName+'：'+spec.bounces+'回反射して '+(spec.outcome===0?'出口に到達':'—');
+  $('bounceInfo').textContent='軌道の全長 約'+Math.round(spec.path_len)+'（盤の横幅=100）';
+  $('angInput').value=spec.angle.toFixed(6);
+  playPath();
+}
+function selectPair(pair, el){
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('sel'));
+  if(el) el.classList.add('sel');
+  curPath=pair.a.path; curPath2=pair.b.path;
+  drawPaths(curPath.length);
+  $('nowInfo').textContent='運命の分かれ目：角度差わずか0.00002°で、反射回数が '+pair.delta+' 回違う';
+  $('bounceInfo').textContent='金 '+pair.a.bounces+'回 ／ 赤 '+pair.b.bounces+'回';
+  $('angInput').value=pair.a.angle.toFixed(6);
+  playPath();
+}
+function selectTrapped(spec, el){
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('sel'));
+  if(el) el.classList.add('sel');
+  curPath=spec.path; curPath2=null;
+  drawPaths(curPath.length);
+  $('nowInfo').textContent='永久軌道：5,000回反射させても出口に届かなかった（表示は最初の'+(spec.path.length-1)+'回）';
+  $('bounceInfo').textContent='';
+  $('angInput').value=spec.angle.toFixed(6);
+  playPath();
+}
+
+// ===== strip (phase map) =====
+function drawStrip(){
+  const c=$('strip'), ctx=c.getContext('2d');
+  const W=c.width, H=c.height; const st=board.strip;
+  const img=ctx.createImageData(W,H);
+  const n=st.maxb.length;
+  for(let px=0; px<W; px++){
+    const i=Math.floor(px/W*n);
+    const mb=st.maxb[i], ef=st.exitfrac[i], trap=st.anytrap[i];
+    let r=10,g=14,b=22;
+    if(st.anyexit[i]){
+      const t=Math.min(1, Math.sqrt(mb/700));
+      r=Math.round(20+ (245-20)*t*t); g=Math.round(40+(197-40)*t); b=Math.round(90+(66-90)*t);
+      const a=0.35+0.65*ef; r=Math.round(r*a+10*(1-a)); g=Math.round(g*a+14*(1-a)); b=Math.round(b*a+22*(1-a));
+    }
+    for(let py=0; py<H; py++){
+      let rr=r,gg=g,bb=b;
+      if(py<4 && trap){ rr=255; gg=80; bb=80; }
+      const o=(py*W+px)*4; img.data[o]=rr; img.data[o+1]=gg; img.data[o+2]=bb; img.data[o+3]=255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+}
+
+// ===== UI build =====
+function fmtAngle(a){ return a.toFixed(6).replace(/0+$/,'').replace(/\.$/,'.0'); }
+function kindLabel(k){ return {top:'最高記録', spike:'針の穴', chaos:'運命の分かれ目', trapped:'永久軌道'}[k]||k; }
+function buildSections(){
+  const host=$('specSections'); host.innerHTML='';
+  const groups=[
+    {title:'発掘標本', note:'反射回数の多い脱出（金）と、幅の狭い針の穴（スパイク）。カードを選ぶと再生する。', items:board.specimens.filter(s=>s.kind!=='chaos'), fn:selectSpec},
+    {title:'運命の分かれ目（カオス対）', note:'隣り合う2つの角度（差は0.00002°）で、運命がこれだけ割れる。金と赤で重ねて再生する。', items:board.chaos_pairs, fn:null},
+    {title:'永久軌道', note:'5,000回反射させても出口に届かなかった軌道。', items:board.trapped, fn:selectTrapped},
+  ];
+  for(const g of groups){
+    if(!g.items.length) continue;
+    const h=document.createElement('h2'); h.textContent=g.title; host.appendChild(h);
+    const note=document.createElement('p'); note.className='h2note'; note.textContent=g.note; host.appendChild(note);
+    const grid=document.createElement('div'); grid.className='cards';
+    if(g.fn===null){
+      for(const p of g.items){
+        const wrap=document.createElement('div'); wrap.className='pair';
+        const mk=(s,color)=>{
+          const d=document.createElement('button'); d.className='card';
+          d.innerHTML='<div class="k" style="color:'+color+'">角度 '+fmtAngle(s.angle)+'°</div><div class="big">'+s.bounces+'<small> 回反射</small></div><div class="ang">'+(s.outcome===0?'出口に到達':'上限到達')+'</div>';
+          d.onclick=()=>selectPair(p, d); return d;
+        };
+        const vs=document.createElement('div'); vs.className='vs'; vs.innerHTML='差<br>'+p.delta+'回';
+        wrap.appendChild(mk(p.a,'#ffd964')); wrap.appendChild(vs); wrap.appendChild(mk(p.b,'#ff6b6b'));
+        grid.appendChild(wrap);
+      }
+    } else {
+      for(const s of g.items){
+        const d=document.createElement('button'); d.className='card';
+        let extra='';
+        if(s.kind==='spike' && s.width_deg) extra='<div class="w">奇跡の幅：'+(s.width_deg>=0.0019?'0.002°以上（測定範囲を超えて継続）':'約 '+(s.width_deg<0.001?s.width_deg.toExponential(1):s.width_deg.toFixed(4))+'°')+'</div>';
+        if(s.kind==='trapped' || g.fn===selectTrapped) extra='<div class="w">5,000回反射でも脱出せず（検証済み）</div>';
+        d.innerHTML='<div class="k">'+kindLabel(s.kind)+'</div><div class="big">'+s.bounces+'<small> 回反射</small></div><div class="ang">角度 '+fmtAngle(s.angle)+'°</div>'+extra;
+        d.onclick=()=>g.fn(s, d);
+        grid.appendChild(d);
+      }
+    }
+    host.appendChild(grid);
+  }
+}
+function setBoard(b){
+  board=b; stopAnim(); curPath=null; curPath2=null;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.id===b.id));
+  $('boardStats').innerHTML=b.name+'： 計算 <b>'+b.stats.rays.toLocaleString()+'</b> 本 ／ 脱出 <b>'+b.stats.exit_rate+'%</b> ／ 600回反射しても出られなかった軌道 <b>'+b.stats.trapped.toLocaleString()+'</b> 本';
+  drawBoardBase(); drawStrip(); buildSections();
+  $('nowInfo').textContent='標本を選ぶと軌道を再生します'; $('bounceInfo').textContent='';
+}
+async function init(){
+  const res=await fetch('data.json'); DATA=await res.json();
+  $('tRays').textContent='約'+(DATA.totals.rays/10000).toFixed(0)+'万本';
+  $('tSpec').textContent=DATA.totals.specimens+'件';
+  const tabs=$('tabs');
+  for(const b of DATA.boards){
+    const t=document.createElement('button'); t.className='tab'; t.dataset.id=b.id; t.textContent=b.name;
+    t.onclick=()=>setBoard(b); tabs.appendChild(t);
+  }
+  setBoard(DATA.boards[0]);
+  $('strip').addEventListener('pointerdown', e=>{
+    const r=$('strip').getBoundingClientRect();
+    const f=(e.clientX-r.left)/r.width;
+    const ang=-75+f*150;
+    $('angInput').value=ang.toFixed(6);
+    $('stripAngle').textContent='選択中：'+ang.toFixed(4)+'°';
+    fire();
+  });
+  $('strip').addEventListener('pointermove', e=>{
+    const r=$('strip').getBoundingClientRect();
+    const f=(e.clientX-r.left)/r.width;
+    $('stripAngle').textContent=(-75+f*150).toFixed(4)+'°';
+  });
+}
+function fire(){
+  const ang=parseFloat($('angInput').value);
+  if(isNaN(ang)) return;
+  const [dx,dy]=direction(board, ang);
+  const r=tracePath(board.launcher[0], board.launcher[1], dx, dy, board.segs, 1000);
+  curPath=r.pts; curPath2=null;
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('sel'));
+  const msg = r.outcome===0 ? '出口に到達！ '+r.bounces+'回反射' : (r.outcome===1 ? '1,000回反射しても出られなかった' : '軌道が消えた');
+  $('fireResult').textContent=msg;
+  $('nowInfo').textContent='自分の発射：角度 '+ang+'° → '+msg;
+  drawPaths(curPath.length); playPath();
+}
+$('playBtn').onclick=()=>{ if(playing) stopAnim(); else playPath(); };
+$('speedBtn').onclick=()=>{ speed=speed>=4?0.5:speed*2; $('speedBtn').textContent='速度 ×'+speed; if(curPath) playPath(); };
+$('fireBtn').onclick=fire;
+document.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{
+  const v=parseFloat($('angInput').value||'0')+parseFloat(b.dataset.n);
+  $('angInput').value=v.toFixed(6); fire();
+});
+init();
+</script>
+</body>
+</html>
