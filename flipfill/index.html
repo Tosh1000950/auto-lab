@@ -35,6 +35,12 @@ button.act:disabled{opacity:.4;cursor:default}
 #swapNotice .big{font-size:1.25rem;font-weight:700;letter-spacing:.08em;margin-bottom:6px}
 #swapNotice p{margin:4px 0 12px;font-size:.92rem;line-height:1.6}
 #swapNotice button{font-size:1rem;padding:8px 20px;border-radius:999px;border:1px solid #d8a441;background:#d8a441;color:#241a08;cursor:pointer;font-weight:700}
+#tossOverlay{display:none;position:absolute;inset:0;z-index:40;background:rgba(24,20,16,.55);border-radius:16px;flex-direction:column;align-items:center;justify-content:center;gap:18px;cursor:pointer}
+.coin{width:118px;height:118px;position:relative;transform-style:preserve-3d}
+.cface{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.6rem;font-family:"Hiragino Mincho ProN","Yu Mincho","MS Mincho",serif;backface-visibility:hidden;-webkit-backface-visibility:hidden;box-shadow:inset 0 -6px 12px rgba(0,0,0,.35),inset 0 4px 8px rgba(255,255,255,.25)}
+.cface.b{background:radial-gradient(circle at 50% 34%,#41434c,#141519 60%,#060607);color:#e9b949;border:3px solid #d8a441}
+.cface.w{background:radial-gradient(circle at 50% 34%,#ffffff,#f4efe3 60%,#d6cfbc);color:#23242a;border:3px solid #8a7d68;transform:rotateY(180deg)}
+#tossCap{color:#f6efe0;font-size:1.05rem;letter-spacing:.06em;text-shadow:0 2px 8px rgba(0,0,0,.7);text-align:center;padding:0 12px;line-height:1.6}
 .brand{display:flex;align-items:center;gap:16px;margin:10px 0 2px}
 .brandLogo{width:84px;height:84px;border-radius:50%;box-shadow:0 6px 18px rgba(60,35,0,.3);flex:none}
 .brand h1{margin:0;font-size:2.1rem;letter-spacing:.14em}
@@ -120,7 +126,7 @@ footer{margin-top:44px;font-size:.85rem;color:#8a7d68;text-align:center}
 <button class="act" id="swapYes">スワップする（先手と石を交換）</button>
 <button class="act" id="swapNo">スワップしない</button>
 </div>
-<div class="boardWrap"><div id="board3dWrap"></div><div class="board" id="board"></div><div id="swapNotice"><div class="big">スワップ！</div><p id="swapNoticeText"></p><button id="swapNoticeBtn">白で続ける</button></div></div>
+<div class="boardWrap"><div id="board3dWrap"></div><div class="board" id="board"></div><div id="tossOverlay"><div class="coin" id="coin"><div class="cface b">玄</div><div class="cface w">素</div></div><div id="tossCap">玄素のコインで、先手・後手を決めます</div></div><div id="swapNotice"><div class="big">スワップ！</div><p id="swapNoticeText"></p><button id="swapNoticeBtn">白で続ける</button></div></div>
 <p class="note">ルール：空きマスに自分の石を1つ置くと、上下左右に隣り合う敵石が<strong>すべて</strong>自分の色にひっくり返ります（斜めは対象外、連鎖なし）。25手で盤が埋まったら、石の多い方の勝ち。合計25は奇数なので引き分けはありません。先手が強すぎるため、2手目側が最初の1手を見て「スワップ（先手と交代）」できるパイルールを採用（2人対戦用。AI対戦では初期設定で無効で、上のボタンで有効化できます）。AIは序盤は貪欲、中盤以降は貪欲＋完全読み（空き10以下）で打ちます。石を置く音と反転音には実録サンプル（Kenney Impact Sounds、CC0）を使い、読み込めない環境ではWeb Audio合成に切り替わります。</p>
 </div>
 
@@ -347,7 +353,7 @@ const swapBox=document.getElementById("swapBox"), swapMsg=document.getElementByI
 let G=null;
 const gameCells=buildBoard(boardEl,i=>humanMove(i));
 function sideName(pl){ return G.mode==="ai" ? (pl===G.humanSide?"あなた":"AI") : (pl===1?G.names[1]:G.names[-1]); }
-function gameCanPlay(i){ return !!(G&&!G.over&&!G.awaitingSwap&&(G.mode==="2p"||G.turn===G.humanSide)&&G.bd[i]===0); }
+function gameCanPlay(i){ return !!(G&&!G.over&&!G.tossLock&&!G.awaitingSwap&&(G.mode==="2p"||G.turn===G.humanSide)&&G.bd[i]===0); }
 window.__ffTap=i=>humanMove(i);
 window.__ffState=()=>({turn:G?G.turn:1,canPlay:gameCanPlay});
 window.__ffRefresh=()=>{ if(G) renderGame({}); };
@@ -370,7 +376,11 @@ function afterMove(placed,flips){
     if(G.mode==="ai"){ const nb=G.bd.filter(v=>v===1).length; const humanWon=(nb>12.5)===(G.humanSide===1); humanWon?sWin():sLose(); } else sWin();
     return; }
   if(G.moves===1&&!G.swapDone){
-    if(G.mode==="ai"){
+    if(G.mode==="ai"&&G.humanSide===-1){
+      if(SWAP_VS_AI){ G.awaitingSwap=true; swapMsg.textContent=`AIの初手（${cellName(placed)}）を見て、スワップ（先手と交代）しますか？`; swapBox.style.display="flex"; renderGame({}); }
+      else G.swapDone=true;
+    }
+    else if(G.mode==="ai"){
       if(SWAP_VS_AI&&ROOT_WR[placed]>=0.718){ G.humanSide=-1; G.swapDone=true; sSwap(); renderGame({});
         statusEl.textContent=`AIがスワップしました。強い初手（黒勝率 ${ROOT_WR[placed].toFixed(3)}）だったので、先手を取られました。あなたは白で、次はあなたの手番です。`;
         document.getElementById("swapNoticeText").textContent=`AIがスワップ（先手への礼）を使いました。強い初手（黒勝率 ${ROOT_WR[placed].toFixed(3)}）だったため、置いた黒石はAIのものになりました。あなたは白で、次はあなたの手番です。`;
@@ -387,7 +397,7 @@ function doMove(i){
   afterMove(placed,flips);
 }
 document.getElementById("swapNoticeBtn").addEventListener("click",()=>{ document.getElementById("swapNotice").style.display="none"; });
-function humanMove(i){ if(!G||G.over||G.awaitingSwap)return; document.getElementById("swapNotice").style.display="none"; if(G.mode==="ai"&&G.turn!==G.humanSide)return; if(G.bd[i]!==0)return; audioInit(); doMove(i); }
+function humanMove(i){ if(!G||G.over||G.tossLock||G.awaitingSwap)return; document.getElementById("swapNotice").style.display="none"; if(G.mode==="ai"&&G.turn!==G.humanSide)return; if(G.bd[i]!==0)return; audioInit(); doMove(i); }
 let DIFF="normal";
 function aiMoveByDiff(bd,pl){ const es=empties(bd);
   if(DIFF==="weak"){ if(Math.random()<0.55) return es[(Math.random()*es.length)|0]; return greedyMove(bd,pl); }
@@ -396,17 +406,46 @@ function aiMoveByDiff(bd,pl){ const es=empties(bd);
 function aiTurn(){ if(!G||G.over)return; const m=aiMoveByDiff(G.bd,G.turn); if(m>=0)doMove(m); }
 document.querySelectorAll(".diff").forEach(b=>b.addEventListener("click",()=>{ DIFF=b.dataset.d; document.querySelectorAll(".diff").forEach(x=>x.classList.toggle("on",x===b)); }));
 document.querySelectorAll(".skin").forEach(b=>b.addEventListener("click",()=>{ document.querySelectorAll(".skin").forEach(x=>x.classList.toggle("on",x===b)); document.querySelectorAll(".board").forEach(el=>el.classList.toggle("crest",b.dataset.s==="crest")); if(window.FF3D) window.FF3D.setSkin(b.dataset.s); }));
+let coinDeg=0, tossTimer=null;
+function startToss(){
+  G.tossLock=true; renderGame({});
+  statusEl.textContent="玄素のコインで先手・後手を決めています…";
+  const ov=document.getElementById("tossOverlay"), coin=document.getElementById("coin"), cap=document.getElementById("tossCap");
+  cap.textContent="玄（げん）が出れば先手（黒）、素（そ）が出れば後手（白）";
+  ov.style.display="flex";
+  const playerFirst=Math.random()<0.5;
+  const wantMod=playerFirst?0:180;
+  coinDeg+=360*5+((wantMod-(coinDeg%360)+360)%360);
+  requestAnimationFrame(()=>{ coin.style.transition="transform 1.35s cubic-bezier(.12,.61,.22,1)"; coin.style.transform=`rotateY(${coinDeg}deg)`; });
+  clearTimeout(tossTimer);
+  tossTimer=setTimeout(()=>finishToss(playerFirst,false),1500);
+  ov.onclick=()=>finishToss(playerFirst,true);
+}
+function finishToss(playerFirst,skipped){
+  if(!G||!G.tossLock) return;
+  clearTimeout(tossTimer);
+  const coin=document.getElementById("coin"), cap=document.getElementById("tossCap"), ov=document.getElementById("tossOverlay");
+  if(skipped){ coin.style.transition="none"; coin.style.transform=`rotateY(${coinDeg}deg)`; }
+  G.humanSide=playerFirst?1:-1; G.tossLock=false;
+  cap.textContent=playerFirst?"玄（げん）！ あなたが先手（黒）です":"素（そ）！ あなたは後手（白）、AIが先手です";
+  renderGame({});
+  statusEl.textContent=playerFirst?"コイントス：玄（げん）。あなたの番です（黒）。":"コイントス：素（そ）。あなたは白です。AIが先手を打ちます。";
+  setTimeout(()=>{ ov.style.display="none"; if(G&&G.mode==="ai"&&!G.over&&G.turn!==G.humanSide) setTimeout(aiTurn,450); }, skipped?550:850);
+}
 function newGame(mode){
-  G={bd:Array(25).fill(0),turn:1,mode:mode||(G?G.mode:"ai"),humanSide:1,moves:0,over:false,awaitingSwap:false,swapDone:false,names:{1:"プレイヤーA","-1":"プレイヤーB"}};
+  clearTimeout(tossTimer);
+  document.getElementById("tossOverlay").style.display="none";
+  G={bd:Array(25).fill(0),turn:1,mode:mode||(G?G.mode:"ai"),humanSide:1,moves:0,over:false,awaitingSwap:false,swapDone:false,tossLock:false,names:{1:"プレイヤーA","-1":"プレイヤーB"}};
   swapBox.style.display="none";
   document.getElementById("modeAI").classList.toggle("on",G.mode==="ai");
   document.getElementById("mode2P").classList.toggle("on",G.mode==="2p");
-  renderGame({});
+  document.getElementById("swapNotice").style.display="none";
+  if(G.mode==="ai") startToss(); else renderGame({});
 }
 document.getElementById("modeAI").addEventListener("click",()=>newGame("ai"));
 document.getElementById("mode2P").addEventListener("click",()=>newGame("2p"));
 document.getElementById("newGame").addEventListener("click",()=>newGame());
-document.getElementById("swapYes").addEventListener("click",()=>{ if(!G)return; const t=G.names[1]; G.names[1]=G.names[-1]; G.names[-1]=t; G.swapDone=true; G.awaitingSwap=false; swapBox.style.display="none"; sSwap(); renderGame({}); statusEl.textContent="スワップ成立。先手（黒）は"+G.names[1]+"さんになりました。次は白の手番です。"; });
+document.getElementById("swapYes").addEventListener("click",()=>{ if(!G)return; if(G.mode==="ai"){ G.humanSide=1; G.swapDone=true; G.awaitingSwap=false; swapBox.style.display="none"; sSwap(); renderGame({}); statusEl.textContent="スワップ成立。AIの初手はあなたのものになりました。あなたは黒で、次はAI（白）の手番です。"; setTimeout(aiTurn,650); return; } const t=G.names[1]; G.names[1]=G.names[-1]; G.names[-1]=t; G.swapDone=true; G.awaitingSwap=false; swapBox.style.display="none"; sSwap(); renderGame({}); statusEl.textContent="スワップ成立。先手（黒）は"+G.names[1]+"さんになりました。次は白の手番です。"; });
 document.getElementById("swapNo").addEventListener("click",()=>{ if(!G)return; G.swapDone=true; G.awaitingSwap=false; swapBox.style.display="none"; renderGame({}); });
 const soundBtn=document.getElementById("soundBtn");
 function syncSoundBtn(){ soundBtn.textContent=muted?"🔇 音なし":"🔊 音あり"; }
