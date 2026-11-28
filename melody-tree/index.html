@@ -44,6 +44,15 @@ button.act:disabled{opacity:.45;cursor:default}
 footer{margin-top:44px;text-align:center;color:#8a8270;font-size:.82rem}
 .eraList{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .eraList span{border:1px solid var(--line);border-radius:999px;padding:2px 12px;font-size:.82rem;background:#fff}
+.guide{counter-reset:step}
+.guide ol{margin:6px 0 6px 22px;padding:0}
+.guide li{margin:7px 0}
+.guide li b{color:var(--accent)}
+.volrow{display:flex;align-items:center;gap:10px;background:#f3ecdb;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:12px;flex-wrap:wrap}
+.volrow label{font-weight:700;font-size:.9rem}
+.volrow input[type=range]{flex:1 1 140px;accent-color:var(--accent);height:28px}
+.volrow .vv{font-size:.85rem;min-width:42px;text-align:right}
+.volrow button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:.85rem}
 </style>
 </head>
 <body>
@@ -60,6 +69,16 @@ footer{margin-top:44px;text-align:center;color:#8a8270;font-size:.82rem}
 <div class="stat"><b>5000ステップ</b><span>1島あたりの世代交代</span></div>
 </div>
 </header>
+
+<h2>遊び方（3ステップ）</h2>
+<div class="card guide">
+<ol>
+<li><b>まず聴き比べ。</b>下の方にある「第0世代（祖先）を聴く」と「この島の最良を聴く」の2つのボタンが入口です。進化の出発点（ほぼランダム）と、5000世代の到達点を聴き比べると、このサイトで何が起きたかが分かります。</li>
+<li><b>系統樹の点をタップ。</b>点ひとつが旋律の化石です。色が金に近いほど「音楽らしさ」の点数が高い個体。選ぶと、その家系（祖先と子孫）が光ります。</li>
+<li><b>「祖先から順に聴く」。</b>選んだ化石の家系を、根元の祖先から連続で再生します。世代を追うごとに旋律がどう変わっていくか、耳で追うのがこの発掘の本番です。</li>
+</ol>
+<p class="note">島は64個あり、それぞれ別の家系です。島を変えると系統樹ごと入れ替わります。音量はプレイヤーの「音量」バーでいつでも調整できます。</p>
+</div>
 
 <h2>島を選ぶ</h2>
 <div class="card">
@@ -81,6 +100,12 @@ footer{margin-top:44px;text-align:center;color:#8a8270;font-size:.82rem}
 
 <div class="card player">
 <div class="pinfo">
+<div class="volrow">
+<label for="vol">音量</label>
+<input type="range" id="vol" min="0" max="100" step="1" value="70">
+<span class="vv" id="volVal">70%</span>
+<button type="button" id="muteBtn">消音</button>
+</div>
 <p class="kv" id="nodeInfo">化石をタップすると、ここに情報が出ます。</p>
 <p>
 <button class="act" id="playBtn" type="button" disabled>▶ この旋律を聴く</button>
@@ -111,8 +136,14 @@ footer{margin-top:44px;text-align:center;color:#8a8270;font-size:.82rem}
 <script>
 "use strict";
 const SCALE=[0,2,4,5,7,9,11];
-let AC=null;
+let AC=null, MASTER=null;
+let VOL=parseFloat(localStorage.getItem("melodytree_vol")||"0.7");
+if(!(VOL>=0&&VOL<=1)) VOL=0.7;
 function ac(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended") AC.resume(); return AC; }
+function master(ctx){ if(!MASTER){ MASTER=ctx.createGain(); MASTER.gain.value=VOL; MASTER.connect(ctx.destination); } return MASTER; }
+function applyVol(){ const s=$("vol"); if(s) s.value=Math.round(VOL*100); const v=$("volVal"); if(v) v.textContent=Math.round(VOL*100)+"%";
+  if(MASTER&&AC) MASTER.gain.setTargetAtTime(VOL, AC.currentTime, 0.02);
+  localStorage.setItem("melodytree_vol", String(VOL)); }
 function freqOf(d){ const o=Math.floor((d-1)/7), s=SCALE[(d-1)%7]+12*o; return 261.63*Math.pow(2,s/12); }
 let playTimer=null, playingChain=null;
 function stopPlay(){ if(playTimer){clearTimeout(playTimer); playTimer=null;} playingChain=null; drawRoll(curGenome(), -1); }
@@ -125,7 +156,7 @@ function playGenome(gstr, done, highlight){
     fl.type="lowpass"; fl.frequency.value=2300;
     gn.gain.setValueAtTime(0,t); gn.gain.linearRampToValueAtTime(0.22,t+0.012);
     gn.gain.exponentialRampToValueAtTime(0.09,t+stepDur*0.9); gn.gain.exponentialRampToValueAtTime(0.001,t+stepDur*2.2);
-    o1.connect(fl); o2.connect(fl); fl.connect(gn); gn.connect(ctx.destination);
+    o1.connect(fl); o2.connect(fl); fl.connect(gn); gn.connect(master(ctx));
     o1.start(t); o2.start(t); o1.stop(t+stepDur*2.4); o2.stop(t+stepDur*2.4);
   });
   if(highlight){ let i=0; const iv=setInterval(()=>{ drawRoll(gstr, i); i++; if(i>32){clearInterval(iv); drawRoll(gstr,-1);} }, stepDur*1000); }
@@ -164,6 +195,8 @@ async function loadIsland(i){
   layout(); fitView(); selected=null; updatePanel(); drawRoll(null,-1);
   $("eraList").innerHTML = ISL.eras.map((e,k)=>`<span>第${k+1}期：${e}</span>`).join("");
   $("bestBtn").textContent=`${ISL.name}の最良を聴く`;
+  const bt=ISL.final_archive&&ISL.final_archive[0];
+  if(bt&&byId.has(bt.id)) selectNode(bt.id);
 }
 
 /* ---------- tree layout & view ---------- */
@@ -273,6 +306,11 @@ $("rootBtn").onclick=()=>{ const rs=ISL.nodes.filter(n=>n.step===0); if(!rs.leng
   const n=rs[Math.floor(Math.random()*rs.length)]; selectNode(n.id); playGenome(n.g,null,true); };
 $("bestBtn").onclick=()=>{ const t=ISL.final_archive[0]; if(!t) return; selectNode(t.id); const n=byId.get(t.id); if(n) playGenome(n.g,null,true); };
 window.addEventListener("resize",()=>{ if(ISL) fitView(); });
+$("vol").addEventListener("input",e=>{ VOL=e.target.value/100; if(VOL>0) prevVol=VOL; applyVol(); syncMuteBtn(); });
+let prevVol=VOL>0?VOL:0.7;
+function syncMuteBtn(){ $("muteBtn").textContent = VOL===0 ? "音を出す" : "消音"; }
+$("muteBtn").onclick=()=>{ if(VOL===0){ VOL=prevVol||0.7; } else { prevVol=VOL; VOL=0; } applyVol(); syncMuteBtn(); };
+applyVol(); syncMuteBtn();
 loadIndex();
 </script>
 </body>
