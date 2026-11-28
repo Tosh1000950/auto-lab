@@ -80,7 +80,8 @@ def main():
         print("emoji dedup: %d 件を差し替え" % len(changed))
         for name, old, new in changed:
             print("  %s: %s -> %s" % (name, old, new))
-    data = {"elements": elements, "recipes": g["recipes"], "starters": g["starters"]}
+    data = {"elements": elements, "recipes": g["recipes"], "starters": g["starters"],
+            "hints": g.get("hints", {})}
     with open(out_js, "w") as f:
         f.write("window.GAME_DATA = " + json.dumps(data, ensure_ascii=False) + ";\n")
     os.remove(tmp)

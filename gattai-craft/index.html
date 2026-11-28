@@ -128,12 +128,12 @@
 const DATA = window.GAME_DATA;
 const EL = {}; DATA.elements.forEach(e => EL[e.name] = e);
 const RECIPES = DATA.recipes;
-const FALLBACKS = ["蒸気","煙","氷","泡","光","影","炎","泥"].filter(n => EL[n]);
+const FALLBACKS = ["蒸気","煙","氷","泡","光","影","炎","泥"].filter(n => EL[n] && EL[n].depth !== null && EL[n].depth !== undefined);
 const LS_KEY = "gattai-craft-v1";
 let found = new Set(DATA.starters);
 try {
   const saved = JSON.parse(localStorage.getItem(LS_KEY) || "null");
-  if (saved && Array.isArray(saved.found)) saved.found.forEach(n => { if (EL[n]) found.add(n); });
+  if (saved && Array.isArray(saved.found)) saved.found.forEach(n => { if (EL[n] && EL[n].depth !== null && EL[n].depth !== undefined) found.add(n); });
 } catch(e){}
 let sel = [];
 let lastResult = null;
@@ -167,7 +167,8 @@ function hashCode(s){ let h=0; for (let i=0;i<s.length;i++){ h = (h*31 + s.charC
 
 function combine(a, b){
   const r = RECIPES[key(a,b)];
-  if (r && EL[r]) return { name:r, real:true };
+  if (r && EL[r] && EL[r].depth !== null && EL[r].depth !== undefined) return { name:r, real:true };
+  if (!FALLBACKS.length) return { name: null, real:false };
   const fb = FALLBACKS[hashCode(key(a,b)) % FALLBACKS.length];
   return { name: fb, real:false };
 }
@@ -220,11 +221,26 @@ function pick(n){
   if (sel.length < 2) { renderSlots(); renderTray(); return; }
   const [a,b] = sel; sel = [];
   const res = combine(a,b);
+  if (!res.name) { showNoResult(a, b); renderSlots(); renderTray(); return; }
   const isNew = !found.has(res.name);
   found.add(res.name); save();
   lastResult = {a, b, name: res.name, isNew, real: res.real};
   showResult(a, b, res, isNew);
   renderSlots(); renderTray(); renderProgress(); renderDex(); renderDaily();
+}
+
+function showNoResult(a, b){
+  const card = $("resultCard");
+  card.className = "card show";
+  card.innerHTML = "";
+  const em = document.createElement("div"); em.className="em"; em.textContent = "💨"; card.appendChild(em);
+  const nm = document.createElement("div"); nm.className="nm"; nm.textContent = "何も生まれなかった"; card.appendChild(nm);
+  const ds = document.createElement("div"); ds.className="ds";
+  ds.textContent = "この組み合わせはまだ計算されていない（仮要素も尽きた）";
+  card.appendChild(ds);
+  const eq = document.createElement("div"); eq.className="ds";
+  eq.textContent = EL[a].emoji + " " + a + " ＋ " + EL[b].emoji + " " + b;
+  card.appendChild(eq);
 }
 
 function showResult(a, b, res, isNew){
@@ -291,9 +307,9 @@ function showDetail(e){
   const em = document.createElement("div"); em.className="em"; em.textContent = e.emoji; box.appendChild(em);
   const nm = document.createElement("div"); nm.className="nm"; nm.textContent = e.name; box.appendChild(nm);
   const ds = document.createElement("div"); ds.className="ds"; ds.textContent = (e.desc || "（説明はまだない）") + "／分類：" + e.cat + "／深さ：" + e.depth; box.appendChild(ds);
-  const how = Object.keys(RECIPES).find(k => RECIPES[k] === e.name);
+  const hint = (DATA.hints || {})[e.name];
   const hw = document.createElement("div"); hw.className="how";
-  if (how) { const [a,b] = how.split("|"); hw.textContent = "作り方：" + EL[a].emoji + a + " ＋ " + EL[b].emoji + b; }
+  if (hint) { hw.textContent = "作り方：" + EL[hint[0]].emoji + hint[0] + " ＋ " + EL[hint[1]].emoji + hint[1]; }
   else hw.textContent = "作り方：最初の要素";
   box.appendChild(hw);
 }
@@ -304,9 +320,9 @@ function showHint(e){
   box.innerHTML = "";
   const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = "？？？（深さ" + e.depth + "）"; box.appendChild(nm);
   const hw = document.createElement("div"); hw.className = "how";
-  const how = Object.keys(RECIPES).find(k => RECIPES[k] === e.name);
-  if (how) {
-    const [a, b] = how.split("|");
+  const hint = (DATA.hints || {})[e.name];
+  if (hint) {
+    const [a, b] = hint;
     const part = n => found.has(n) ? EL[n].emoji + n : "深さ" + (EL[n].depth ?? "?") + "の要素";
     hw.textContent = "ヒント：" + part(a) + " ＋ " + part(b) + " の組み合わせらしい";
   } else hw.textContent = "ヒント：まだ手がかりがない";
