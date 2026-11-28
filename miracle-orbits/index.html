@@ -73,6 +73,13 @@
     </div>
   </header>
 
+  <section class="about" style="margin-top:18px">
+    <h2 style="margin-top:0">遊び方（3ステップ）</h2>
+    <p><b>1. まず標本を再生。</b>下の「発掘標本」のカードを押すと、その角度でボールが飛び、軌道が盤面いっぱいに描かれます。金色の線が何百回も反射してから出口（盤の右端の金色の部分）に届くのが「奇跡の軌道」です。</p>
+    <p><b>2. 「角度の運命地図」の読み方。</b>盤面の下にある細長い帯がそれです。<b>横軸が発射角度</b>（左端 −75° 〜 右端 +75°）で、細い線1本が「その角度で撃ったらどうなったか」を表します。<b>金色の線ほど「たくさん反射してから脱出」</b>、暗い場所は「すぐ出てしまうか、閉じ込められる」角度帯です。標本の角度の位置には白い目印が付いています。</p>
+    <p><b>3. 自分でも撃てる。</b>地図をタップすると、その角度でボールが飛びます。標本の角度を 0.001° ずらして撃ち直すと、軌道がまったく別物になります。それがカオス（初期値への鋭敏な依存）です。</p>
+  </section>
+
   <div class="tabs" id="tabs"></div>
   <p class="boardstats" id="boardStats"></p>
 
@@ -85,9 +92,10 @@
   </div>
 
   <div class="stripwrap">
-    <div class="striphead"><span>角度の運命地図（左端 −75° 〜 右端 +75°）</span><span id="stripAngle"></span></div>
+    <div class="striphead"><span>角度の運命地図 ＝「角度ごとの結果一覧」。横軸が発射角度、線1本がその角度の結果</span><span id="stripAngle"></span></div>
     <canvas id="strip" width="2000" height="92"></canvas>
-    <p class="legend"><span style="background:#f5c542"></span>長い軌道ほど金色<span style="background:#2b6cb0"></span>短い軌道<span style="background:#ff6b6b"></span>上端の赤＝その角度帯に「永久軌道」あり。地図をタップすると、その角度で自分でも撃てる。</p>
+    <div class="striphead"><span>−75°</span><span>−37.5°</span><span>0°</span><span>+37.5°</span><span>+75°</span></div>
+    <p class="legend"><span style="background:#f5c542"></span>金色＝その角度は「たくさん反射してから脱出」<span style="background:#2b6cb0"></span>青＝短い軌道<span style="background:#ff6b6b"></span>上端の赤＝その角度帯に「永久軌道」あり。白い目印＝標本のある角度。地図をタップすると、その角度で自分でも撃てる。</p>
   </div>
 
   <div id="specSections"></div>
@@ -220,6 +228,7 @@ function selectSpec(spec, el){
   $('nowInfo').textContent=kindName+'：'+spec.bounces+'回反射して '+(spec.outcome===0?'出口に到達':'—');
   $('bounceInfo').textContent='軌道の全長 約'+Math.round(spec.path_len)+'（盤の横幅=100）';
   $('angInput').value=spec.angle.toFixed(6);
+  MARK=spec.angle; drawStrip();
   playPath();
 }
 function selectPair(pair, el){
@@ -230,6 +239,7 @@ function selectPair(pair, el){
   $('nowInfo').textContent='運命の分かれ目：角度差わずか0.00002°で、反射回数が '+pair.delta+' 回違う';
   $('bounceInfo').textContent='金 '+pair.a.bounces+'回 ／ 赤 '+pair.b.bounces+'回';
   $('angInput').value=pair.a.angle.toFixed(6);
+  MARK=pair.a.angle; drawStrip();
   playPath();
 }
 function selectTrapped(spec, el){
@@ -240,10 +250,12 @@ function selectTrapped(spec, el){
   $('nowInfo').textContent='永久軌道：5,000回反射させても出口に届かなかった（表示は最初の'+(spec.path.length-1)+'回）';
   $('bounceInfo').textContent='';
   $('angInput').value=spec.angle.toFixed(6);
+  MARK=spec.angle; drawStrip();
   playPath();
 }
 
 // ===== strip (phase map) =====
+let MARK=null;
 function drawStrip(){
   const c=$('strip'), ctx=c.getContext('2d');
   const W=c.width, H=c.height; const st=board.strip;
@@ -265,6 +277,15 @@ function drawStrip(){
     }
   }
   ctx.putImageData(img,0,0);
+  const marks=[];
+  board.specimens.forEach(s=>marks.push(s.angle));
+  board.chaos_pairs.forEach(p=>{ marks.push(p.a.angle); marks.push(p.b.angle); });
+  board.trapped.forEach(s=>marks.push(s.angle));
+  ctx.fillStyle='#ffffff';
+  for(const a of marks){ const x=Math.round((a+75)/150*W);
+    ctx.beginPath(); ctx.moveTo(x-4,0); ctx.lineTo(x+4,0); ctx.lineTo(x,8); ctx.closePath(); ctx.fill(); }
+  if(MARK!=null){ const x=Math.round((MARK+75)/150*W);
+    ctx.fillStyle='#ffd75e'; ctx.fillRect(x-1,8,2,H-8); }
 }
 
 // ===== UI build =====
@@ -335,13 +356,15 @@ async function init(){
   });
   $('strip').addEventListener('pointermove', e=>{
     const r=$('strip').getBoundingClientRect();
-    const f=(e.clientX-r.left)/r.width;
-    $('stripAngle').textContent=(-75+f*150).toFixed(4)+'°';
+    const f=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width));
+    const i=Math.min(board.strip.maxb.length-1, Math.floor(f*board.strip.maxb.length));
+    $('stripAngle').textContent=(-75+f*150).toFixed(4)+'° ／ この付近の最長 '+board.strip.maxb[i]+' 回反射 ／ 脱出率 '+Math.round(board.strip.exitfrac[i]*100)+'%';
   });
 }
 function fire(){
   const ang=parseFloat($('angInput').value);
   if(isNaN(ang)) return;
+  MARK=ang; drawStrip();
   const [dx,dy]=direction(board, ang);
   const r=tracePath(board.launcher[0], board.launcher[1], dx, dy, board.segs, 1000);
   curPath=r.pts; curPath2=null;
